@@ -1,117 +1,192 @@
 AddCSLuaFile()
-ENT.Type = "anim"
-ENT.Base = "base_anim"
+
+ENT.Type      = "anim"
+ENT.Base      = "base_anim"
 
 ENT.PrintName = "Weighted Storage Cube"
-ENT.Category = "Portal 2"
+ENT.Category  = "Portal 2"
 ENT.Spawnable = true
 
-ENT.CubeType = 0
-
-ENT.Shining = false
-ENT.ShineEndTime = 0
+ENT.CubeType       = 0          -- 0 = standard, 1 = companion, 2 = reflection
+ENT.Shining        = false
+ENT.ShineEndTime   = 0
 ENT.NextDamageTime = 0
+ENT.IsReflective   = false      -- only reflection cube can reflect
 
-local CubeModels = {}
-CubeModels[1] = "models/props/metal_box.mdl"
-CubeModels[2] = "models/props/reflection_cube.mdl"
-CubeModels[3] = "models/props/metal_box.mdl"
-CubeModels[4] = "models/props/metal_box.mdl"
-CubeModels[5] = "models/props/metal_box.mdl"
+-- Cube type configuration:
+-- 0: Standard cube   (metal_box, skin 0)
+-- 1: Companion cube  (metal_box, skin 1)
+-- 2: Reflection cube (reflection_cube, skin 0, reflective)
+local CubeConfig = {
+    [0] = {
+        model      = "models/props/metal_box.mdl",
+        skin       = 0,
+        reflective = false
+    },
+    [1] = {
+        model      = "models/props/metal_box.mdl",
+        skin       = 1,
+        reflective = false
+    },
+    [2] = {
+        model      = "models/props/reflection_cube.mdl",
+        skin       = 0,
+        reflective = true
+    }
+}
 
 if CLIENT then
     language.Add("prop_weighted_cube", "Weighted Storage Cube")
-    killicon.Add("prop_weighted_cube","killicons/prop_weighted_cube",Color( 255, 80, 0, 200 ))
+    killicon.Add("prop_weighted_cube", "killicons/prop_weighted_cube", Color(255, 80, 0, 200))
+end
+
+function ENT:ApplyCubeType()
+    -- Normalize / clamp CubeType
+    local t = tonumber(self.CubeType) or 0
+    if t < 0 then t = 0 end
+    if t > 2 then t = 0 end  -- clamp to valid range
+
+    self.CubeType = t
+
+    local cfg = CubeConfig[t] or CubeConfig[0]
+
+    self:SetModel(cfg.model)
+    self:SetSkin(cfg.skin or 0)
+    self.IsReflective = cfg.reflective or false
 end
 
 function ENT:Initialize()
-    if CLIENT then return end
-    self:SetModel(CubeModels[self.CubeType+1])
-    self:PhysicsInit(SOLID_VPHYSICS)
-    self:SetMoveType(MOVETYPE_VPHYSICS)
-    self:PhysWake()
-    self:GetPhysicsObject():SetMass(120)
+    if SERVER then
+        self:ApplyCubeType()
+
+        self:PhysicsInit(SOLID_VPHYSICS)
+        self:SetMoveType(MOVETYPE_VPHYSICS)
+
+        local phys = self:GetPhysicsObject()
+        if IsValid(phys) then
+            phys:SetMass(120)
+            phys:Wake()
+        end
+    end
 end
 
-function ENT:PhysicsCollide(colData,collider)
+function ENT:PhysicsCollide(colData, collider)
     if colData.Speed < 150 then return end
-    self:EmitSound("P2SolidMetal.ImpactHard",65,100,colData.Speed/1000)
+
+    if SERVER then
+        local volume = math.Clamp(colData.Speed / 1000, 0, 1)
+        self:EmitSound("P2SolidMetal.ImpactHard", 65, 100, volume)
+    end
 end
 
-function ENT:KeyValue( key, value )
-	if key == "CubeType" then
-		self.CubeType = value
-        self:SetModel(CubeModels[self.CubeType+1])
-        print(self.CubeType)
-	end
+function ENT:KeyValue(key, value)
+    if key == "CubeType" then
+        self.CubeType = tonumber(value) or 0
+        -- Safe to apply immediately; Initialize will re-apply too.
+        self:ApplyCubeType()
+    end
 end
+
+-- Shared trace table to reduce allocations
+local traceData = {
+    start  = nil,
+    endpos = nil,
+    filter = nil
+}
 
 function ENT:Think()
-    if !self.Shining then return end
-    self:NextThink(CurTime())
-    local strt = self:GetPos()//+self:OBBCenter()
-    local trd = {
-        start = strt,
-        endpos = strt+self:GetAngles():Forward()*25000,
-        filter = self
-    }
-    local tr = util.TraceLine(trd)
-    local trueEndPos, trueEndAng = tr.HitPos,tr.HitNormal:Angle()
+    -- Only reflection cubes can reflect / shine at all
+    if not self.IsReflective or not self.Shining then return end
+
+    local ct = CurTime()
+
+    -- Stop shining when timer expires
+    if self.ShineEndTime <= ct then
+        self.Shining = false
+        return
+    end
+
+    local startPos = self:GetPos()
+    local forward  = self:GetAngles():Forward()
+
+    traceData.start  = startPos
+    traceData.endpos = startPos + forward * 25000
+    traceData.filter = self
+
+    local tr = util.TraceLine(traceData)
+
+    local hitEnt    = tr.Entity
+    local hitPos    = tr.HitPos
+    local hitNormal = tr.HitNormal
+
     local shouldDoParticle = true
-    if IsValid(tr.Entity) then
-        if tr.Entity.OnShineByLaser != nil then
-            shouldDoParticle = tr.Entity:OnShineByLaser(self)
+
+    if IsValid(hitEnt) then
+        -- Let the hit entity react to the laser (catchers, etc.)
+        if hitEnt.OnShineByLaser ~= nil then
+            -- If returning false explicitly, caller can suppress particles
+            shouldDoParticle = hitEnt:OnShineByLaser(self) ~= false
         end
-        if !tr.Entity:IsWorld() and tr.Entity:Health() > 0 and self.NextDamageTime <= CurTime() and SERVER then
-            if tr.Entity:GetClass() != "npc_turret_floor" and tr.Entity:IsNPC() or tr.Entity:IsPlayer() then
-                tr.Entity:TakeDamage(10,self,self)
-                tr.Entity:EmitSound("HL2Player.BurnPain")
-                self.NextDamageTime = CurTime()+0.2
+
+        if SERVER and not hitEnt:IsWorld() and hitEnt:Health() > 0 and self.NextDamageTime <= ct then
+            local isTurret      = (hitEnt:GetClass() == "npc_turret_floor")
+            local isNPCOrPlayer = hitEnt:IsNPC() or hitEnt:IsPlayer()
+
+            if (not isTurret and isNPCOrPlayer) then
+                hitEnt:TakeDamage(10, self, self)
+                hitEnt:EmitSound("HL2Player.BurnPain")
+                self.NextDamageTime = ct + 0.2
             else
-                if tr.Entity.TurretP2SelfDestructing == nil then
-                    tr.Entity:Ignite(math.huge,0)
-                    tr.Entity:Fire("SelfDestruct")
-                    tr.Entity.TurretP2SelfDestructing = true
+                if hitEnt.TurretP2SelfDestructing == nil then
+                    hitEnt:Ignite(math.huge, 0)
+                    hitEnt:Fire("SelfDestruct")
+                    hitEnt.TurretP2SelfDestructing = true
                 end
             end
         end
     end
+
     if shouldDoParticle then
         local ed = EffectData()
-        ed:SetOrigin(trueEndPos)
-        ed:SetAngles(trueEndAng)
-        ed:SetNormal(tr.HitNormal)
+        ed:SetOrigin(hitPos)
+        ed:SetAngles(hitNormal:Angle())
+        ed:SetNormal(hitNormal)
         ed:SetMagnitude(1)
-        util.Effect("ElectricSpark",ed)
+        util.Effect("ElectricSpark", ed)
     end
-    if CLIENT then
-        self:Draw()
-    end
-    if self.ShineEndTime <= CurTime() and self.Shining then
-        self.Shining = false
-    end
-    self:NextThink(CurTime())
+
+    self:NextThink(ct)
     return true
 end
 
 function ENT:Draw()
     self:DrawModel()
-    //if self.CubeType != 2 then return end
-    if !self.Shining then return end
-    self:SetRenderBounds(Vector(-99999,-99999,-99999),Vector(99999,99999,99999))
-    local strt = self:GetPos()
-    local trd = {
-        start = strt,
-        endpos = strt+self:GetAngles():Forward()*25000,
+
+    -- Only reflection cubes, and only while shining, draw the laser
+    if not self.IsReflective or not self.Shining then return end
+
+    self:SetRenderBounds(
+        Vector(-99999, -99999, -99999),
+        Vector( 99999,  99999,  99999)
+    )
+
+    local startPos = self:GetPos()
+    local tr = util.TraceLine({
+        start  = startPos,
+        endpos = startPos + self:GetAngles():Forward() * 25000,
         filter = self
-    }
-    local tr = util.TraceLine(trd)
-    render.SetMaterial(Material('cable/redlaser'))
-    render.DrawBeam(strt,tr.HitPos,5,0,0,Color(255,255,255,255))
+    })
+
+    render.SetMaterial(Material("cable/redlaser"))
+    render.DrawBeam(startPos, tr.HitPos, 5, 0, 0, Color(255, 255, 255, 255))
 end
+
 function ENT:OnShineByLaser(laser)
-    //if self.CubeType != 2 then return end // 2 = Reflection
-    self.ShineEndTime = CurTime()+0.1
+    -- Non-reflection cubes do not reflect lasers at all
+    if not self.IsReflective then return end
+
+    -- Extend shine for 0.1s after each hit
+    self.ShineEndTime = CurTime() + 0.1
     if self.Shining then return end
     self.Shining = true
 end

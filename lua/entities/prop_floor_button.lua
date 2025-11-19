@@ -1,80 +1,122 @@
 AddCSLuaFile()
-ENT.Type = "anim"
-ENT.Base = "base_anim"
 
-ENT.PrintName = "Floor Button"
-ENT.Category = "Portal 2"
-ENT.Spawnable = true
-ENT.Downed = false
+ENT.Type            = "anim"
+ENT.Base            = "base_anim"
+
+ENT.PrintName       = "Floor Button"
+ENT.Category        = "Portal 2"
+ENT.Spawnable       = true
+
+ENT.Downed          = false
+ENT.AutomaticFrameAdvance = true
+ENT.NextToggleTime   = 0
+
+-- Optional: define skins
+ENT.SkinUp           = 0
+ENT.SkinDown         = 1
 
 function ENT:Initialize()
-    self:SetMoveType(MOVETYPE_NONE)
     self:SetModel("models/props/portal_button.mdl")
-    //self:PhysicsInitBox(Vector(-self:GetModelBounds().X, -self:GetModelBounds().Y, -6), Vector(self:GetModelBounds().X, self:GetModelBounds().Y, 13))
-    --self:PhysicsInit(SOLID_VPHYSICS)
-    self:SetCollisionBounds(Vector(-self:GetModelBounds().X, -self:GetModelBounds().Y, -6), Vector(self:GetModelBounds().X, self:GetModelBounds().Y, 6))
-    self:SetSolid(SOLID_BBOX)
     self:SetMoveType(MOVETYPE_NONE)
-    --self:SetPos(self:GetPos()-Vector(0, 0, 10))
+
+    -- Use model bounds for collision
+    local mins, maxs = self:GetModelBounds()
+    self:SetCollisionBounds(Vector(-24, -24, -6), Vector(24, 24, 6))
+    self:SetSolid(SOLID_BBOX)
+
+    -- Default skin
+    self:SetSkin(self.SkinUp)
 end
 
-function ENT:KeyValue(k, v)
-    if k == "OnPressed" or k == "OnUnPressed" then
-        self:StoreOutput(k, v)
+function ENT:KeyValue(key, value)
+    if key == "OnPressed" or key == "OnUnPressed" then
+        self:StoreOutput(key, value)
     end
 end
 
 function ENT:Down(activator)
-    if self.Downed then return end
+    if self.Downed or CurTime() < self.NextToggleTime then return end
     self.Downed = true
-    //self:PhysicsInitBox(Vector(-self:GetModelBounds().X, -self:GetModelBounds().Y, -6), Vector(self:GetModelBounds().X, self:GetModelBounds().Y, 6))
-    self:SetMoveType(MOVETYPE_NONE)
-    self:ResetSequence( "down" )
-    self:TriggerOutput("OnPressed",activator)
+    self.NextToggleTime = CurTime() + 0.1 -- Slight delay to avoid spam
+
+    self:ResetSequence("down")
+    self:SetSkin(self.SkinDown)
     self:EmitSound("buttons/portal_button_down_01.wav")
+    self:TriggerOutput("OnPressed", activator)
+    self:Fire("OnUser1")
 end
 
 function ENT:Up()
-    if !self.Downed then return end
+    if not self.Downed or CurTime() < self.NextToggleTime then return end
     self.Downed = false
-    //self:PhysicsInitBox(Vector(-self:GetModelBounds().X, -self:GetModelBounds().Y, -6), Vector(self:GetModelBounds().X, self:GetModelBounds().Y, 13))
-    self:SetMoveType(MOVETYPE_NONE)
-    self:ResetSequence( "up" )
+    self.NextToggleTime = CurTime() + 0.1
+
+    self:ResetSequence("up")
+    self:SetSkin(self.SkinUp)
     self:EmitSound("buttons/portal_button_up_01.wav")
-    self:TriggerOutput("OnUnPressed",self)
+    self:TriggerOutput("OnUnPressed", self)
+    self:Fire("OnUser2")
 end
 
 function ENT:Think()
-    self:OnCustomThink()
     if CLIENT then return end
-    local yee = {
-        start = self:GetPos(),
-        endpos = self:GetPos(),
-        mins = Vector(-20,-20,-6),
-        maxs = Vector(20,20,15),
-        filter = self
-    }
-    local tr = util.TraceHull(yee)
-    if IsValid(tr.Entity) then
-        if (IsValid(tr.Entity:GetPhysicsObject()) and (tr.Entity:GetPhysicsObject():GetMass() > 100) and tr.Entity:GetMoveType() == MOVETYPE_VPHYSICS) then
-           self:Down(tr.Entity)
-        elseif tr.Entity:GetMoveType() == MOVETYPE_STEP or tr.Entity:GetMoveType() == MOVETYPE_WALK then
-            self:Down(tr.Entity)
+    self:OnCustomThink()
+
+    local mins, maxs = self:GetCollisionBounds()
+    local worldMin, worldMax = self:LocalToWorld(mins), self:LocalToWorld(maxs)
+    local entities = ents.FindInBox(worldMin, worldMax)
+
+    local pressed = false
+    local activator = nil
+
+    for _, ent in ipairs(entities) do
+        if ent ~= self then
+            if ent:IsPlayer() and ent:Alive() then
+                pressed = true
+                activator = ent
+                break
+            elseif ent:GetClass() == "prop_weighted_cube" then
+                local phys = ent:GetPhysicsObject()
+                if IsValid(phys) and phys:GetMass() > 10 then
+                    pressed = true
+                    activator = ent
+                    break
+                end
+            elseif ent:GetMoveType() == MOVETYPE_STEP or ent:GetMoveType() == MOVETYPE_WALK then
+                -- Covers NPCs or walking entities
+                pressed = true
+                activator = ent
+                break
+            end
         end
-    else
-        self:Up(tr.Entity)
     end
+
+    if pressed then
+        self:Down(activator)
+    else
+        self:Up()
+    end
+
     self:NextThink(CurTime())
     return true
 end
 
 function ENT:Draw()
     self:DrawModel()
-    if !GetConVar("developer"):GetBool() then return end
-    render.DrawWireframeBox( self:GetPos(), Angle( 0, 0, 0 ), Vector(-20,-20,-0), Vector(20,20,10), Color(255,255,255,255), false )
+
+    if GetConVar("developer"):GetBool() then
+        local mins, maxs = self:GetCollisionBounds()
+        render.DrawWireframeBox(
+            self:GetPos(),
+            Angle(0, 0, 0),
+            mins,
+            maxs,
+            color_white,
+            false
+        )
+    end
 end
 
-ENT.AutomaticFrameAdvance = true
 function ENT:OnCustomThink()
     self:NextThink(CurTime())
     return true

@@ -1,28 +1,31 @@
 AddCSLuaFile()
-ENT.Type = "anim"
-ENT.Base = "base_anim"
 
-ENT.PrintName = "Testchamber Door"
-ENT.Category = "Portal 2"
-ENT.Spawnable = true
+ENT.Type        = "anim"
+ENT.Base        = "base_anim"
+
+ENT.PrintName   = "Testchamber Door"
+ENT.Category    = "Portal 2"
+ENT.Spawnable   = true
+
+ENT.AutomaticFrameAdvance = true
 
 function ENT:Initialize()
     if CLIENT then return end
+
     self:SetModel("models/props/portal_door_combined.mdl")
-    self:SetSequence("idleclose")
+    self:ResetSequence("idleclose")
 end
 
-function ENT:KeyValue(k,v)
-    if k == "OnOpen" or k == "OnClose" then
-        self:StoreOutput(k, v)
+function ENT:KeyValue(key, value)
+    if key == "OnOpen" or key == "OnClose" then
+        self:StoreOutput(key, value)
     end
 end
 
-function ENT:AcceptInput(inp,act,call,data)
-    if inp == "Open" then
+function ENT:AcceptInput(inputName, activator, caller, data)
+    if inputName == "Open" then
         self:Open()
-    end
-    if inp == "Close" then
+    elseif inputName == "Close" then
         self:Close()
     end
 end
@@ -31,17 +34,16 @@ function ENT:Open()
     self:ResetSequenceInfo()
     self:ResetSequence("Open")
     self:EmitSound("plats/door_round_blue_unlock_01.wav")
-    self:TriggerOutput("OnOpen")
+    self:TriggerOutput("OnOpen", self)
 end
 
 function ENT:Close()
     self:ResetSequenceInfo()
     self:ResetSequence("Close")
     self:EmitSound("plats/door_round_blue_lock_01.wav")
-    self:TriggerOutput("OnClose")
+    self:TriggerOutput("OnClose", self)
 end
 
-ENT.AutomaticFrameAdvance = true
 function ENT:Think()
     self:NextThink(CurTime())
     return true

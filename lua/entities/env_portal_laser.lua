@@ -1,16 +1,25 @@
 AddCSLuaFile()
-ENT.Type = "anim"
-ENT.Base = "base_anim"
 
-ENT.PrintName = "Laser Emitter"
-ENT.Category = "Portal 2"
-ENT.Spawnable = true
+ENT.Type        = "anim"
+ENT.Base        = "base_anim"
 
+ENT.PrintName   = "Laser Emitter"
+ENT.Category    = "Portal 2"
+ENT.Spawnable   = true
 ENT.RenderGroup = RENDERGROUP_BOTH
 
-ENT.NextDamageTime = 0
+ENT.Model       = "models/props/laser_emitter.mdl"
 
-ENT.Model = "models/props/laser_emitter.mdl"
+-- Config
+local LASER_MODEL        = "models/props/laser_emitter.mdl"
+local LASER_OFFSET       = 14
+local LASER_RANGE        = 25000
+local LASER_BEAM_WIDTH   = 5
+local LASER_DAMAGE       = 10
+local LASER_DAMAGE_DELAY = 0.2
+
+local LASER_MATERIAL     = Material("cable/redlaser")
+local LASER_COLOR        = Color(255, 255, 255, 255)
 
 if CLIENT then
     language.Add("env_portal_laser", "Laser Beam")
@@ -23,81 +32,106 @@ end
 */
 
 function ENT:Initialize()
-    if CLIENT then 
-        self:SetRenderBounds(Vector(-99999,-99999,-99999),Vector(99999,99999,99999))
-        return 
+    if CLIENT then
+        -- Big render bounds so the beam is always considered visible
+        self:SetRenderBounds(
+            Vector(-32768, -32768, -32768),
+            Vector( 32768,  32768,  32768)
+        )
+        return
     end
+
     self:SetModel(self.Model)
     self:PhysicsInit(SOLID_VPHYSICS)
     self:SetMoveType(MOVETYPE_NONE)
     self:SetUseType(SIMPLE_USE)
+
+    self.NextDamageTime = 0
 end
 
-function ENT:KeyValue(k, v)
-    if k == "model" then
-        self.Model = v
+function ENT:KeyValue(key, value)
+    if key == "model" then
+        self.Model = value
     end
+end
+
+-- Centralized trace calculation so Think() and Draw() share logic
+-- Returns startPos, traceResult
+function ENT:GetLaserTrace()
+    local startPos = self:GetPos()
+
+    if self:GetModel() == LASER_MODEL then
+        startPos = startPos - self:GetUp() * LASER_OFFSET
+    end
+
+    local tr = util.TraceLine({
+        start  = startPos,
+        endpos = startPos + self:GetForward() * LASER_RANGE,
+        filter = self
+    })
+
+    return startPos, tr
 end
 
 function ENT:Think()
-    self:NextThink(CurTime())
-    local strt = self:GetPos()
-    if self:GetModel() == "models/props/laser_emitter.mdl" then
-        strt = self:GetPos() - self:GetUp()*14
-    end
-    local trd = {
-        start = strt,
-        endpos = strt+self:GetAngles():Forward()*25000,
-        filter = self
-    }
-    local tr = util.TraceLine(trd)
-    local trueEndPos, trueEndAng = tr.HitPos,tr.HitNormal:Angle()
+    local curTime = CurTime()
+
+    local startPos, tr = self:GetLaserTrace()
+    local hitEnt       = tr.Entity
+    local hitPos       = tr.HitPos
+    local hitNormal    = tr.HitNormal
     local shouldDoParticle = true
-    if IsValid(tr.Entity) then
-        if tr.Entity.OnShineByLaser != nil then
-            shouldDoParticle = tr.Entity:OnShineByLaser(self)
+
+    if IsValid(hitEnt) then
+        -- Let the hit entity optionally control whether spark effects play
+        if hitEnt.OnShineByLaser ~= nil then
+            shouldDoParticle = hitEnt:OnShineByLaser(self)
         end
-        if !tr.Entity:IsWorld() and tr.Entity:Health() > 0 and self.NextDamageTime <= CurTime() and SERVER then
-            if tr.Entity:GetClass() != "npc_turret_floor" and tr.Entity:IsNPC() or tr.Entity:IsPlayer() then
-                tr.Entity:TakeDamage(10,self,self)
-                tr.Entity:EmitSound("HL2Player.BurnPain")
-                self.NextDamageTime = CurTime()+0.2
-            else
-                if tr.Entity.TurretP2SelfDestructing == nil then
-                    tr.Entity:Ignite(math.huge,0)
-                    tr.Entity:Fire("SelfDestruct")
-                    tr.Entity.TurretP2SelfDestructing = true
+
+        if SERVER and not hitEnt:IsWorld() and curTime >= (self.NextDamageTime or 0) then
+            local isPlayer = hitEnt:IsPlayer()
+            local isNPC    = hitEnt:IsNPC()
+            local class    = isNPC and hitEnt:GetClass() or ""
+
+            -- Players & NPCs (except floor turrets) take direct damage
+            if ((isNPC and class ~= "npc_turret_floor") or isPlayer) then
+                if hitEnt:Health() > 0 then
+                    hitEnt:TakeDamage(LASER_DAMAGE, self, self)
+                    hitEnt:EmitSound("HL2Player.BurnPain")
+                    self.NextDamageTime = curTime + LASER_DAMAGE_DELAY
+                end
+
+            -- Floor turret special case: ignite and self destruct once
+            elseif isNPC and class == "npc_turret_floor" then
+                if not hitEnt.TurretP2SelfDestructing then
+                    hitEnt:Ignite(math.huge, 0)
+                    hitEnt:Fire("SelfDestruct")
+                    hitEnt.TurretP2SelfDestructing = true
                 end
             end
         end
     end
-    if shouldDoParticle then
+
+    -- Only spawn effects on the server so they get networked properly
+    if SERVER and shouldDoParticle and hitPos and hitNormal then
         local ed = EffectData()
-        ed:SetOrigin(trueEndPos)
-        ed:SetAngles(trueEndAng)
-        ed:SetNormal(tr.HitNormal)
+        ed:SetOrigin(hitPos)
+        ed:SetAngles(hitNormal:Angle())
+        ed:SetNormal(hitNormal)
         ed:SetMagnitude(1)
-        util.Effect("ElectricSpark",ed)
+        util.Effect("ElectricSpark", ed, true, true)
     end
-    if CLIENT then
-        self:Draw()
-    end
-    self:NextThink(CurTime())
+
+    self:NextThink(curTime)
     return true
 end
 
 function ENT:Draw()
     self:DrawModel()
-    local strt = self:GetPos()
-    if self:GetModel() == "models/props/laser_emitter.mdl" then
-        strt = self:GetPos() - self:GetUp()*14
-    end
-    local trd = {
-        start = strt,
-        endpos = strt+self:GetAngles():Forward()*25000,
-        filter = self
-    }
-    local tr = util.TraceLine(trd)
-    render.SetMaterial(Material('cable/redlaser'))
-    render.DrawBeam(strt,tr.HitPos,5,0,0,Color(255,255,255,255))
+
+    local startPos, tr = self:GetLaserTrace()
+    if not tr or not tr.HitPos then return end
+
+    render.SetMaterial(LASER_MATERIAL)
+    render.DrawBeam(startPos, tr.HitPos, LASER_BEAM_WIDTH, 0, 1, LASER_COLOR)
 end
