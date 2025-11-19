@@ -1,0 +1,1 @@
+I've put a lot of work into this, so here's the current state. Right now, most of the system works. There's still a lot of missing sounds, but several of the scenes/voicelines play, and you can mostly progress naturally. I still have to do a lot of work to finish this.
