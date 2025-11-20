@@ -1,85 +1,88 @@
 AddCSLuaFile()
 
-ENT.Type = "anim"
-ENT.Base = "base_anim"
+ENT.Type      = "anim"
+ENT.Base      = "base_anim"
 
 ENT.PrintName = "Hard Light Bridge Projected"
-ENT.Category = "Portal 2"
-ENT.Spawnable = false
+ENT.Category  = "Portal 2"
+ENT.Spawnable = true
 
-ENT.Length = 0
-ENT.Enabled = true
-ENT.Width = 48   -- slightly narrower than before
-ENT.Thickness = 4
+ENT.RenderGroup = RENDERGROUP_TRANSLUCENT
 
-if CLIENT then
-    ENT.BridgeMaterial = Material("effects/blueblacklargebeam") -- glowy beam material
-end
+-- constants
+local BRIDGE_HALF_WIDTH  = 32
+local BRIDGE_HALF_THICK  = 2
+local BRIDGE_MAX_LENGTH  = 4096
+
+local BOUNDS_MIN = Vector(0, -BRIDGE_HALF_WIDTH, -BRIDGE_HALF_THICK)
+local BOUNDS_MAX = Vector(0,  BRIDGE_HALF_WIDTH,  BRIDGE_HALF_THICK)
+local BRIDGE_COLOR = Color(0, 255, 255, 255)
+
+-- reusable trace table (avoids allocations each Think)
+local traceData = {}
 
 function ENT:Initialize()
-    if CLIENT then return end
+    if SERVER then
+        self:SetSolid(SOLID_BBOX)
+        self:SetMoveType(MOVETYPE_NONE)
+        self:SetSaveValue("gmod_allowphysgun", "0")
 
-    self:SetSolid(SOLID_VPHYSICS)
-    self:SetMoveType(MOVETYPE_NONE)
-    self:SetCollisionGroup(COLLISION_GROUP_NONE)
-    self:SetSaveValue("gmod_allowphysgun", "0")
+        -- start with zero-length bridge
+        self.Length = 0
+        self:SetCollisionBounds(BOUNDS_MIN, BOUNDS_MAX)
 
-    -- initialize physics with a tiny box so it has a physobj
-    self:PhysicsInitBox(Vector(0, -self.Width / 2, -self.Thickness / 2),
-                        Vector(1, self.Width / 2, self.Thickness / 2))
-    local phys = self:GetPhysicsObject()
-    if IsValid(phys) then
-        phys:EnableMotion(false)
+        self:NextThink(CurTime())
+    else -- CLIENT
+        self.Length = 0
+        self:SetRenderBounds(BOUNDS_MIN, BOUNDS_MAX)
+        self:DrawShadow(false)
     end
-
-    self:NextThink(CurTime())
-end
-
-function ENT:Think()
-    local maxLen = 4096
-    local tr = util.TraceLine({
-        start = self:GetPos(),
-        endpos = self:GetPos() + self:GetAngles():Forward() * maxLen,
-        mask = MASK_SOLID_BRUSHONLY
-    })
-
-    local newLength = maxLen * tr.Fraction
-    if math.abs(newLength - self.Length) > 1 then
-        self.Length = newLength
-
-        -- Update collision bounds + physics to match length
-        local mins = Vector(0, -self.Width / 2, -self.Thickness / 2)
-        local maxs = Vector(self.Length, self.Width / 2, self.Thickness / 2)
-
-        self:SetCollisionBounds(mins, maxs)
-        self:PhysicsInitBox(mins, maxs)
-
-        local phys = self:GetPhysicsObject()
-        if IsValid(phys) then
-            phys:EnableMotion(false)
-        end
-
-        self:SetRenderBounds(mins, maxs)
-    end
-
-    self:NextThink(CurTime() + 0.05) -- 20Hz update rate
-    return true
 end
 
 if CLIENT then
+
     function ENT:Draw()
-        local ang = self:GetAngles()
-        local pos = self:GetPos()
+        local length = self.Length or 0
 
-        local mins = Vector(0, -self.Width / 2, -self.Thickness / 2)
-        local maxs = Vector(self.Length, self.Width / 2, self.Thickness / 2)
+        -- update render bounds for culling
+        self:SetRenderBounds(
+            BOUNDS_MIN,
+            Vector(length, BRIDGE_HALF_WIDTH, BRIDGE_HALF_THICK)
+        )
 
-        render.SetMaterial(self.BridgeMaterial)
-        render.DrawBox(pos, ang, mins, maxs, Color(0, 200, 255, 180))
-
-        -- Optionally, draw a glow at the end
-        local endPos = pos + ang:Forward() * self.Length
-        render.SetMaterial(Material("sprites/light_glow02_add"))
-        render.DrawSprite(endPos, 32, 32, Color(0, 200, 255, 200))
+        render.SetColorMaterial() -- cheaper than Material("Color") every frame
+        render.DrawBox(
+            self:GetPos(),
+            self:GetAngles(),
+            BOUNDS_MIN,
+            Vector(length, BRIDGE_HALF_WIDTH, BRIDGE_HALF_THICK),
+            BRIDGE_COLOR
+        )
     end
+
+else -- SERVER
+
+    function ENT:Think()
+        local pos = self:GetPos()
+        local dir = self:GetAngles():Forward()
+
+        traceData.start  = pos
+        traceData.endpos = pos + dir * BRIDGE_MAX_LENGTH
+        traceData.filter = self -- avoid hitting ourselves
+
+        local tr = util.TraceLine(traceData)
+        local length = BRIDGE_MAX_LENGTH * tr.Fraction
+
+        self.Length = length
+
+        -- update collision box to match new length
+        self:SetCollisionBounds(
+            BOUNDS_MIN,
+            Vector(length, BRIDGE_HALF_WIDTH, BRIDGE_HALF_THICK)
+        )
+
+        self:NextThink(CurTime())
+        return true
+    end
+
 end

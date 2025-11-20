@@ -1,49 +1,65 @@
 AddCSLuaFile()
 
-ENT.Type        = "anim"
-ENT.Base        = "base_anim"
+ENT.Type      = "anim"
+ENT.Base      = "base_anim"
+ENT.PrintName = "Test-chamber Door"
+ENT.Category  = "Portal 2"
+ENT.Spawnable = true
 
-ENT.PrintName   = "Testchamber Door"
-ENT.Category    = "Portal 2"
-ENT.Spawnable   = true
+ENT.AutomaticFrameAdvance = true          -- Keep animations running
 
-ENT.AutomaticFrameAdvance = true
+------------------------------------------------------------------------------------------------------------------------
+-- SERVER-side only from here on
+------------------------------------------------------------------------------------------------------------------------
+if CLIENT then return end
+
+local OPEN_SOUND  = Sound("plats/door_round_blue_unlock_01.wav")
+local CLOSE_SOUND = Sound("plats/door_round_blue_lock_01.wav")
 
 function ENT:Initialize()
-    if CLIENT then return end
-
     self:SetModel("models/props/portal_door_combined.mdl")
-    self:ResetSequence("idleclose")
+    self:ResetSequence(self:LookupSequence("idleclose"))
 end
 
+------------------------------------------------------------------------------------------------------------------------
+-- Hammer I/O
+------------------------------------------------------------------------------------------------------------------------
 function ENT:KeyValue(key, value)
     if key == "OnOpen" or key == "OnClose" then
         self:StoreOutput(key, value)
     end
 end
 
-function ENT:AcceptInput(inputName, activator, caller, data)
-    if inputName == "Open" then
+function ENT:AcceptInput(name, activator, caller, data)
+    name = name:lower()
+
+    if name == "open" then
         self:Open()
-    elseif inputName == "Close" then
+        return true
+    elseif name == "close" then
         self:Close()
+        return true
     end
 end
 
+------------------------------------------------------------------------------------------------------------------------
+-- Public API
+------------------------------------------------------------------------------------------------------------------------
 function ENT:Open()
-    self:ResetSequenceInfo()
-    self:ResetSequence("Open")
-    self:EmitSound("plats/door_round_blue_unlock_01.wav")
-    self:TriggerOutput("OnOpen", self)
+    self:ResetSequence(self:LookupSequence("Open"))
+    self:EmitSound(OPEN_SOUND)
+    self:TriggerOutput("OnOpen")
 end
 
 function ENT:Close()
-    self:ResetSequenceInfo()
-    self:ResetSequence("Close")
-    self:EmitSound("plats/door_round_blue_lock_01.wav")
-    self:TriggerOutput("OnClose", self)
+    self:ResetSequence(self:LookupSequence("Close"))
+    self:EmitSound(CLOSE_SOUND)
+    self:TriggerOutput("OnClose")
 end
 
+------------------------------------------------------------------------------------------------------------------------
+-- Animation tick
+------------------------------------------------------------------------------------------------------------------------
 function ENT:Think()
     self:NextThink(CurTime())
     return true

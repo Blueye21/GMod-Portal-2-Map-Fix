@@ -1,264 +1,155 @@
+-- ==========================================================
+--  CONFIGURATION CONSTANTS
+-- ==========================================================
+local PANEL_DELAY      = 0.35
+local PANEL_COUNT      = 57
+local EXIT_PANEL_COUNT = 3
+local ARM_COUNT        = 61
 
--- --------------------------------------------------------
+-- Special doors --------------------------------------------------------------
+local SPECIAL = {
+    closeDoor1  = 28,
+    closeDoor2  = 29,
+    farDoor1    = 25,
+    farDoor2    = 26,
+    finalDoor1  = 33,
+    finalDoor2  = 61
+}
+
+-- ==========================================================
+--  INTERNAL HELPERS
+-- ==========================================================
+local function shuffle(t, n)          -- Fisher–Yates, 1-based
+    for i = 1, n do
+        local j = math.random(i, n)
+        t[i], t[j] = t[j], t[i]
+    end
+end
+
+local function entsByDoor(doorNum)
+    return ents.FindByName(("door_%d-shutter_door"):format(doorNum))
+end
+
+local function fireSequenced(list, cmd, value, baseDelay, stepDelay)
+    for idx, doorNum in ipairs(list) do
+        local delay = baseDelay + (idx - 1) * stepDelay
+        for _, ent in ipairs(entsByDoor(doorNum)) do
+            ent:Fire(cmd, value, delay)
+        end
+    end
+end
+
+-- ==========================================================
+--  OLD FUNCTION NAMES  (unchanged public interface)
+-- ==========================================================
 function CloseCeilingOld()
-    local panelDelay     = 0.35
-    local panelCount     = 57
-    local exitPanelCount = 3
-    local panelOrder     = {}
+    local order = {}
+    for i = 1, PANEL_COUNT do order[i] = i end
 
-    -- Seed: 1..panelCount (Lua is 1-indexed)
-    for i = 1, panelCount do
-        panelOrder[i] = i
-    end
+    shuffle(order, PANEL_COUNT - EXIT_PANEL_COUNT)   -- keep last 3 untouched
+    fireSequenced(order, "Open", "", 0, PANEL_DELAY)
+end
 
-    -- Shuffle the first (panelCount - exitPanelCount) panels
-    -- so that the last 'exitPanelCount' panels are left as "safe exits".
-    for i = 1, panelCount - exitPanelCount do
-        local index = math.random(1, panelCount - exitPanelCount)
+-- ------------------------------------------------------------------
+-- Arm helpers – build entity names once, reuse everywhere
+-- ------------------------------------------------------------------
+local function armNames(num)
+    local prefix = "sealin_" .. num
+    return {
+        bottomArm   = prefix .. "-arm_1",
+        topArm      = prefix .. "-arm_2",
+        bottomPanel = prefix .. "-panel_1",
+        topPanel    = prefix .. "-panel_2"
+    }
+end
 
-        -- swap panelOrder[i] and panelOrder[index]
-        panelOrder[i], panelOrder[index] = panelOrder[index], panelOrder[i]
-    end
+local function isSpecial(num)
+    for _, v in pairs(SPECIAL) do if num == v then return true end end
+    return false
+end
 
-    -- Close doors in the shuffled order
-    for i = 1, panelCount do
-        local doorNum = panelOrder[i]
-        local delay   = panelDelay * (i - 1)   -- original used 0-based i, so (i-1)
+-- ------------------------------------------------------------------
+function SealOneArm(armNum, delay)
+    local n = armNames(armNum)
+    local variation = math.Rand(-0.2, 0.2)
 
-        local name = "door_" .. doorNum .. "-shutter_door"
+    -- top arm – always the same ------------------------------------------------
+    EntFire(n.topArm,    "setanimationnoreset", "block_upper01_drop", 0 + delay)
+    EntFire(n.topArm,    "setanimationnoreset", "block_upper01_grabpanel", 1 + delay)
+    EntFire(n.topPanel,  "setparent", n.topArm, 1.5 + delay)
+    EntFire(n.topPanel,  "setparentattachment", "panel_attach", 1.5 + delay)
+    EntFire(n.topPanel,  "clearparent", "", 3.5 + delay)
 
-        -- Fire "Open" on all entities with that name, with a delay
-        for _, ent in ipairs(ents.FindByName(name)) do
-            ent:Fire("Open", "", delay)
-        end
+    -- bottom arm – conditional -----------------------------------------------
+    if not isSpecial(armNum) and armNum % 3 ~= 0 then
+        EntFire(n.bottomArm,   "setanimationnoreset", "block_lower01_drop", 0 + delay)
+        EntFire(n.bottomArm,   "setanimationnoreset", "block_lower01_grabpanel", 1 + delay)
+        EntFire(n.bottomPanel, "setparent", n.bottomArm, 1.5 + delay)
+        EntFire(n.bottomPanel, "setparentattachment", "panel_attach", 1.5 + delay)
+        EntFire(n.bottomArm,   "setanimationnoreset", "block_lower01_pushforward", 2 + delay)
+        EntFire(n.topArm,      "setanimationnoreset", "block_upper01_pushforward", 2 + delay + variation)
+    else
+        EntFire(n.topArm,    "setanimationnoreset", "block_upper02_abovestairs", 2 + delay)
+        EntFire(n.bottomArm, "kill", "", 0)
     end
 end
 
--- --------------------------------------------------------
---function SealChambers()
---{
---	local panelCount = 56 
---
---	for(local i=0;i<panelCount;i+=1)
---	{
---		local doorNum = 1 + i	
---		EntFire("door_" + doorNum + "-shutter_door","Close", "", 0 )
---	}
---}
-
-armCount = 61
-
-closeDoor1 = 28
-closeDoor2 = 29
-farDoor1 = 25
-farDoor2 = 26
-finalDoor1 = 33
-finalDoor2 = 61
-
+-- ------------------------------------------------------------------
 function Seal()
---	local armOrder = {}
---
---	-- seed
---	for(local i=0;i<armCount;i+=1)
---	{
---		local checkDoor = i+1
---		if( checkDoor != closeDoor1 &&
---			checkDoor != closeDoor2 &&
---			checkDoor != farDoor1 &&
---			checkDoor != farDoor2 &&
---			checkDoor != finalDoor1 &&
---			checkDoor != finalDoor2 )
---		{
---			armOrder[armOrder.len()] <- i
---		}
---	}
---	
---	-- shuffle
---	for(local i=0;i<armOrder.len();i+=1)
---	{
---		local temp = armOrder[i]
---		local index = RandomInt(0,armOrder.len()-1)
---		armOrder[i] = armOrder[index]
---		armOrder[index] = temp		
---	}
---	
---	armOrder[armOrder.len()] <- closeDoor1
---	armOrder[armOrder.len()] <- closeDoor2
---	armOrder[armOrder.len()] <- farDoor1
---	armOrder[armOrder.len()] <- farDoor2
---	armOrder[armOrder.len()] <- finalDoor1
---	armOrder[armOrder.len()] <- finalDoor2
---	
---	for(local i=0;i<armOrder.len();i+=1)
---	{
---		printl( "Arm " + (armOrder[i] + 1) + " has timer " + timer * 0.35 )
---		
---		SealOneArm( armOrder[i] + 1, i * 0.35 ) -- the last arms in the list go last
---	}
+    local timer = 0
+    for i = 1, ARM_COUNT do
+        if i == 34 then timer = 0 end                 -- reset after door 33
 
-	local timer = 0
-	for i = 0, armCount - 1 do
-		if i == 33 then
-			timer = 0
-        end
-		
-		local count = i
-		if count > 32 then
-			count = count - 34
-			timer = timer + 0.02 * count
-		else
-			timer = timer + 0.014 * count
-        end
-		
---		printl( "" + (i+1) + " at time " + timer )
-			
-		SealOneArm( i + 1, timer ) -- the last arms in the list go last
-    end
+        local count = i > 33 and (i - 34) or i
+        timer = timer + (i > 33 and 0.02 or 0.014) * count
 
---	EntFire( "door_script", "RunScriptCode", "TryCloseFinalDoors()", 0.35*( armOrder.len()+2) )
-end
-
-function Setup()
-	for i=0, i < armCount - 1 do
-		local armNum = 1 + i	
-		SetArmIdle( armNum )
+        SealOneArm(i, timer)
     end
 end
 
-function Cleanup()
-	for i = 0, i < armCount - 1 do
-		local armNum = 1 + i	
-		CleanUpArm( armNum )
-    end
+-- ------------------------------------------------------------------
+-- One-liners that previously spanned pages
+-- ------------------------------------------------------------------
+local function iterArms(fn)
+    for i = 1, ARM_COUNT do fn(i) end
 end
 
-function ShowDoors()
-	for i=0,i<armCount-1 do
-		local armNum = 1 + i	
-		EnableArm( armNum, true )
-    end
+function Setup()        iterArms(SetArmIdle) end
+function Cleanup()      iterArms(CleanUpArm) end
+function ShowDoors()    iterArms(function(i) EnableArm(i, true)  end) end
+function HideDoors()    iterArms(function(i) EnableArm(i, false) end) end
+
+function SetArmIdle(num)
+    local n = armNames(num)
+    EntFire(n.bottomArm, "setanimationnoreset", "block_lower01_drop_idle")
+    EntFire(n.topArm,    "setanimationnoreset", "block_upper01_drop_idle")
 end
 
-function HideDoors()
-	for i=0,i<armCount-1 do
-		local armNum = 1 + i	
-		EnableArm( armNum, false )
-    end
+function CleanUpArm(num)
+    local n = armNames(num)
+    EntFire(n.topArm,    "kill")
+    EntFire(n.topPanel,  "kill")
+    EntFire(n.bottomArm, "kill")
+    EntFire(n.bottomPanel,"kill")
 end
 
-function CloseFirstDoor()
---	printl("Closing first door!")
---	SealOneArm( closeDoor1, 0 )
---	SealOneArm( closeDoor2, 0 )
---	
---	closeDoor1 = -1
---	closeDoor2 = -1
+function EnableArm(num, on)
+    local n = armNames(num)
+    local cmd = on and "Enable" or "Disable"
+    EntFire(n.topArm, cmd)
+    EntFire(n.topPanel, cmd)
+    EntFire(n.bottomArm, cmd)
+    EntFire(n.bottomPanel, cmd)
 end
 
-function CloseSecondDoor()
---	printl("Closing second door!")
---	SealOneArm( farDoor1, 0 )
---	SealOneArm( farDoor2, 0 )	
---
---	farDoor1 = -1
---	farDoor2 = -1
-end
+-- ------------------------------------------------------------------
+-- Special-door helpers (still used by map logic)
+-- ------------------------------------------------------------------
+function CloseFirstDoor()  SPECIAL.closeDoor1, SPECIAL.closeDoor2 = -1, -1 end
+function CloseSecondDoor() SPECIAL.farDoor1,   SPECIAL.farDoor2   = -1, -1 end
 
 function TryCloseFinalDoors()
-    if closeDoor1 ~= -1 then
-        SealOneArm(closeDoor1, 0)
-    end
-
-    if closeDoor2 ~= -1 then
-        SealOneArm(closeDoor2, 0)
-    end
-
-    if farDoor1 ~= -1 then
-        SealOneArm(farDoor1, 0)
-    end
-
-    if farDoor2 ~= -1 then
-        SealOneArm(farDoor2, 0)
-    end
-
-    SealOneArm(finalDoor1, 0)
-    SealOneArm(finalDoor2, 0)
-end
-
-function SetArmIdle( arm_number )
-	local prefabName = "sealin_" .. arm_number
-	EntFire(prefabName .. "-arm_1", "setanimationnoreset", "block_lower01_drop_idle" );
-	EntFire(prefabName .. "-arm_2", "setanimationnoreset", "block_upper01_drop_idle" );
-end
-
-function SealOneArm( arm_number, delay )
-	local prefabName = "sealin_" .. arm_number
-	local bottomArmName = prefabName .. "-arm_1"
-	local topArmName = prefabName .. "-arm_2"
-	local bottomPanelName = prefabName .. "-panel_1"
-	local topPanelName = prefabName .. "-panel_2"	
-		
-	if arm_number ~= closeDoor1
-    and arm_number ~= closeDoor2
-    and arm_number ~= farDoor1
-    and arm_number ~= finalDoor1
-    and (arm_number % 3) ~= 0 then
-		EntFire(bottomArmName, "setanimationnoreset", "block_lower01_drop", 0.0 + delay );
-		EntFire(bottomArmName, "setanimationnoreset", "block_lower01_grabpanel", 1.0 + delay );
-
-		EntFire(bottomPanelName, "setparent", bottomArmName, 1.5 + delay );
-		EntFire(bottomPanelName, "setparentattachment", "panel_attach", 1.5 + delay );
-		
-		EntFire(bottomArmName, "setanimationnoreset", "block_lower01_pushforward", 2.0 + delay );
-		
-		delay = delay + math.Rand( -0.2, 0.2 )
-
-		EntFire(topArmName, "setanimationnoreset", "block_upper01_pushforward", 2.0 + delay );
-		
-		EntFire(bottomPanelName, "clearparent", "", 3.5 + delay );
-	else
-		EntFire(topArmName, "setanimationnoreset", "block_upper02_abovestairs", 2.0 + delay );
-		EntFire(bottomArmName, "kill", "", 0.0 );
-    end
-	
-	EntFire(topArmName, "setanimationnoreset", "block_upper01_drop", 0.0 + delay );
-	EntFire(topArmName, "setanimationnoreset", "block_upper01_grabpanel", 1.0 + delay );
-
-	EntFire(topPanelName, "setparent", topArmName, 1.5 + delay );
-	EntFire(topPanelName, "setparentattachment", "panel_attach", 1.5 + delay );
-	
-	EntFire(topPanelName, "clearparent", "", 3.5 + delay );
-end
-
-function CleanUpArm( arm_number, delay )
-	local prefabName = "sealin_" .. arm_number
-	local bottomArmName = prefabName .. "-arm_1"
-	local topArmName = prefabName .. "-arm_2"
-	local bottomPanelName = prefabName .. "-panel_1"
-	local topPanelName = prefabName .. "-panel_2"
-	
-	EntFire(topArmName, "kill", "", 0.0 );
-	EntFire(topPanelName, "kill", "", 0.0 );
-	EntFire(bottomArmName, "kill", "", 0.0 );
-	EntFire(bottomPanelName, "kill", "", 0.0 );
-end
-
-function EnableArm( arm_number, enabled )
-	local prefabName = "sealin_" .. arm_number
-	local bottomArmName = prefabName .. "-arm_1"
-	local topArmName = prefabName .. "-arm_2"
-	local bottomPanelName = prefabName .. "-panel_1"
-	local topPanelName = prefabName .. "-panel_2"
-	
-	if enabled then
-		EntFire(topArmName, "Enable", "", 0.0 );
-		EntFire(topPanelName, "Enable", "", 0.0 );
-		EntFire(bottomArmName, "Enable", "", 0.0 );
-		EntFire(bottomPanelName, "Enable", "", 0.0 );
-	else
-		EntFire(topArmName, "Disable", "", 0.0 );
-		EntFire(topPanelName, "Disable", "", 0.0 );
-		EntFire(bottomArmName, "Disable", "", 0.0 );
-		EntFire(bottomPanelName, "Disable", "", 0.0 );
+    for _, v in pairs(SPECIAL) do
+        if v ~= -1 then SealOneArm(v, 0) end
     end
 end

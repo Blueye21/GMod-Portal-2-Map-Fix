@@ -620,45 +620,44 @@ function sp_a2_bts3_smellyhumanlovethem()
 // ****************************************************************************************************
 // GLaDOS Battle
 // ****************************************************************************************************
-		
-if (curMapName=="sp_a2_core") // TODO:  CHANGE THIS TO CORRECT MAP NAME
-{
+]]		
+if curMapName=="sp_a2_core" then // TODO:  CHANGE THIS TO CORRECT MAP NAME
 // ====================================== Glados trap scene
 		SceneTable ["-20_01" ] =
 		{
-			vcd = CreateSceneEntity("scenes/npc/glados/fgbrvtrap02.vcd") // I honestly didn't think you would fall for that
-			char = "glados"
-			postdelay = 1.3 
-			predelay = 1.0
-			next = "-20_02"
-			noDingOff = true
+			vcd = CreateSceneEntity("scenes/npc/glados/fgbrvtrap02.vcd"), // I honestly didn't think you would fall for that
+			char = "glados",
+			postdelay = 1.3,
+			predelay = 1.0,
+			next = "-20_02",
+			noDingOff = true,
 			noDingOn = true
 		}
 		
 		SceneTable ["-20_02" ] =
 		{
-			vcd = CreateSceneEntity("scenes/npc/glados/fgbrvtrap03.vcd") // In fact, I devised a much more elaborate trap ahead, for when you got through this easy one.
-			char = "glados"
-			postdelay = 0.8 
-			predelay = 0.0
-			next = "-20_03"
-			noDingOff = true
+			vcd = CreateSceneEntity("scenes/npc/glados/fgbrvtrap03.vcd"), // In fact, I devised a much more elaborate trap ahead, for when you got through this easy one.
+			char = "glados",
+			postdelay = 0.8,
+			predelay = 0.0,
+			next = "-20_03",
+			noDingOff = true,
 			noDingOn = true
 		}
 		
 		SceneTable ["-20_03" ] =
 		{
-			vcd = CreateSceneEntity("scenes/npc/glados/fgbrvtrap05.vcd") // If I had known it would be this easy, I would have just dangled a turkey leg
-			char = "glados"
-			postdelay = 2.0
-			predelay = 0.0
-			next = nil
-			noDingOff = true
-			noDingOn = true
+			vcd = CreateSceneEntity("scenes/npc/glados/fgbrvtrap05.vcd"), // If I had known it would be this easy, I would have just dangled a turkey leg
+			char = "glados",
+			postdelay = 2.0,
+			predelay = 0.0,
+			next = nil,
+			noDingOff = true,
+			noDingOn = true,
 			fires=
-			[
+			{
 				{entity="rv_start_moving_trigger",input="enable",parameter="",delay=0.5}
-			]
+			}
 			
 			
 		}
@@ -666,31 +665,31 @@ if (curMapName=="sp_a2_core") // TODO:  CHANGE THIS TO CORRECT MAP NAME
 // ======================================  Plays when player lands in moving vault
 		SceneTable ["-21_01" ] =
 		{
-			vcd = CreateSceneEntity("scenes/npc/glados/fgbturrets01.vcd") // Well, it was nice catching up. Lets get to business.
-			char = "glados"
-			postdelay = 0.8
-			predelay = 1.0
-			next = "-21_02"
-			noDingOff = true
+			vcd = CreateSceneEntity("scenes/npc/glados/fgbturrets01.vcd"), // Well, it was nice catching up. Lets get to business.
+			char = "glados",
+			postdelay = 0.8,
+			predelay = 1.0,
+			next = "-21_02",
+			noDingOff = true,
 			noDingOn = true
 		}
 		
 		SceneTable ["-21_02" ] =
 		{
-			vcd = CreateSceneEntity("scenes/npc/glados/fgb_trap01.vcd") // I hope you brought something more powerful than the portal gun this time
-			char = "glados"
-			postdelay = 0.4
-			predelay = 0.0
-			next = "-21_03"
-			noDingOff = true
-			noDingOn = true
+			vcd = CreateSceneEntity("scenes/npc/glados/fgb_trap01.vcd"), // I hope you brought something more powerful than the portal gun this time
+			char = "glados",
+			postdelay = 0.4,
+			predelay = 0.0,
+			next = "-21_03",
+			noDingOff = true,
+			noDingOn = true,
 			fires=
-			[
+			{
 				{entity="glados_chamber_body",input="setanimation",parameter="gladosbattle_firstpart",delay=0,fireatstart=true}, // ANIM
 				{entity="glados_chamber_body",input="setdefaultanimation",parameter="glados_idle_rightside",delay=0,fireatstart=true}
-			]
+			}
 		}
-		
+--[[		
 		SceneTable ["-21_03" ] =
 		{
 			vcd = CreateSceneEntity("scenes/npc/glados/fgb_trap02.vcd") // Otherwise you're about to become the past president of the being alive club, ha ha. 
@@ -2718,9 +2717,9 @@ function bts4_computer_hack_spark()
 //		NanobotFired01.wav	What? You can't fire me!
 //		NanobotLawyers01.wav	Well, JERRY -- maybe your prejudiced worksite could have accommodated a nanobot of my size! You'll be hearing from my lawyer! Thanks for the HATE CRIME, Jerry!
 //		NanobotLawyers02.wav	We're not actually going to sue them, I just don't want them to report this. I don't even HAVE a lawyer. In fact, if I EVER retain counsel, I will DIE. Oh, I gotta go. I'll see you soon.
-
-	}	
-
+]]
+end	
+--[[
 // ****************************************************************************************************
 // SP_A2_PIT_FLINGS	companion cube fizzle
 // ****************************************************************************************************

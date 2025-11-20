@@ -203,3 +203,37 @@ sound.Add({
 		"world/dropper_iris_open_02.wav"
     }
 })
+sound.Add({
+    name = "World.RobotAirDrill",
+    channel = CHAN_AUTO,
+    soundlevel = 85,
+    volume = 0.90,
+    pitch = {90,110},
+    sound = {
+        ")world/robot_parts/robot_air_drill_01.wav",
+		")world/robot_parts/robot_air_drill_02.wav",
+		")world/robot_parts/robot_air_drill_03.wav",
+		")world/robot_parts/robot_air_drill_04.wav"
+    }
+})
+sound.Add({
+    name = "World.RobotDangleCeiling",
+    channel = CHAN_AUTO,
+    soundlevel = 85,
+    volume = 0.08,
+    pitch = {100,110},
+    sound = {
+        ")world/robot_parts/robot_ratchet_md_01.wav",
+		")world/robot_parts/robot_metal_tweak_short_01.wav",
+		")world/robot_parts/robot_ratchet_lg_01.wav",
+		")world/robot_parts/robot_ratchet_md_02.wav",
+		")world/robot_parts/robot_metal_gear_01.wav",
+		")world/robot_parts/robot_metal_tweak_short_02.wav",
+		")world/robot_parts/robot_ratchet_lg_02.wav",
+		")world/robot_parts/robot_ratchet_md_03.wav",
+		")world/robot_parts/robot_metal_tweak_short_03.wav",
+		")world/robot_parts/robot_ratchet_lg_03.wav",
+		")world/robot_parts/robot_ratchet_md_04.wav",
+		")world/robot_parts/robot_metal_tweak_short_04.wav"
+    }
+})

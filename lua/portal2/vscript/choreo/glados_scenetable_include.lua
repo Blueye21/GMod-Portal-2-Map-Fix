@@ -1373,7 +1373,7 @@ SceneTable = {}
 		--OW...
 		SceneTable["sp_a1_intro7Impact02"] = {vcd=CreateSceneEntity("scenes/npc/sphere03/demospherethud04.vcd"),postdelay=1.2,next="sp_a1_intro7Impact03",char="wheatley",noDingOff=true,noDingOn=true}
 		--I. Am. Not. Dead! I'm not dead! [laughter]
-		SceneTable["sp_a1_intro7Impact03"] = {vcd=CreateSceneEntity("scenes/npc/sphere03/demospherethud06.vcd"),postdelay=0.0,next="sp_a1_intro7Impact04",char="wheatley",fires={{entity="@glados",input="runscriptcode",parameter="sp_a1_intro7_NotDeadStart()",delay=0.0,fireatstart=true},{entity="@glados",input="runscriptcode",parameter="sp_a1_intro7_NotDeadEnd()",delay=0.0}},noDingOff=true,noDingOn=true}
+		SceneTable["sp_a1_intro7Impact03"] = {vcd=CreateSceneEntity("scenes/npc/sphere03/demospherethud06.vcd"),postdelay=0.0,next="sp_a1_intro7Impact04",char="wheatley",fires={{entity="@glados",input="runscriptcode",parameter="	",delay=0.0,fireatstart=true},{entity="@glados",input="runscriptcode",parameter="sp_a1_intro7_NotDeadEnd()",delay=0.0}},noDingOff=true,noDingOn=true}
 		--I can't move, though. That's the problem now.
 		SceneTable["sp_a1_intro7Impact04"] = {vcd=CreateSceneEntity("scenes/npc/sphere03/demospherethud08.vcd"),postdelay=0.3,next="sp_a1_intro7Impact05",char="wheatley",noDingOff=true,noDingOn=true}
 		--Are you still there? Can you pick me up, do you think? If you are there?

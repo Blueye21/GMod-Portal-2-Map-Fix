@@ -80,6 +80,22 @@ sound.Add({
 })
 
 sound.Add({
+    name = "SphereFoley.LowAccentBlanks",
+    channel = CHAN_AUTO,
+    soundlevel = 65,
+    volume = {0.35,0.4},
+    pitch = {95,100},
+    sound = {
+        "npc/wheatley_foley/sphere_foley_ruff_low_accent_01.wav",
+		"npc/wheatley_foley/sphere_foley_ruff_low_accent_02.wav",
+		"npc/wheatley_foley/sphere_foley_ruff_low_accent_03.wav",
+		"npc/wheatley_foley/sphere_foley_ruff_low_accent_04.wav",
+		"npc/wheatley_foley/sphere_foley_ruff_low_accent_05.wav",
+		"npc/wheatley_foley/sphere_foley_ruff_low_accent_06.wav"
+    }
+})
+
+sound.Add({
     name = "SphereFoley.NodShort",
     channel = CHAN_AUTO,
     soundlevel = 70,

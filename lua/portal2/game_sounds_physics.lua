@@ -1,4 +1,3 @@
-print("[P2] game_sounds_physics.lua loaded")
 sound.Add({
     name = "Default.StepLeft",
     soundlevel = 75,
@@ -45,7 +44,7 @@ sound.Add({
 	}
 })
 sound.Add({
-    name = "P2SolidMetal.ImpactHard",
+    name = "SolidMetal.ImpactHard",
     channel = CHAN_AUTO,
     soundlevel = 75,
     volume = 0.5,
