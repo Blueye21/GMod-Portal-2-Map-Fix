@@ -1,4 +1,3 @@
-print("[P2] game_sounds_world.lua loaded")
 sound.Add({
     name = "World.a1Intro1Glasstastrophe01",
     channel = CHAN_AUTO,
@@ -235,5 +234,34 @@ sound.Add({
 		")world/robot_parts/robot_ratchet_lg_03.wav",
 		")world/robot_parts/robot_ratchet_md_04.wav",
 		")world/robot_parts/robot_metal_tweak_short_04.wav"
+    }
+})
+
+sound.Add({
+    name = "World.RobotIBeamArmSlide",
+    channel = CHAN_AUTO,
+    soundlevel = 75,
+    volume = 0.5,
+    sound = {
+        ")world/robot_parts/robot_i_beam_arm_slide_01.wav",
+        ")world/robot_parts/robot_i_beam_arm_slide_02.wav",
+        ")world/robot_parts/robot_i_beam_arm_slide_03.wav",
+        ")world/robot_parts/robot_i_beam_arm_slide_04.wav",
+        ")world/robot_parts/robot_i_beam_arm_slide_05.wav"
+    }
+})
+
+sound.Add({
+    name = "World.RobotHydraulicsOpen20f",
+    channel = CHAN_AUTO,
+    soundlevel = 75,
+    volume = 0.45,
+    pitch = {95,100},
+    sound = {
+        ")world/robot_parts/robot_hydraulics_open_20f_01.wav",
+        ")world/robot_parts/robot_hydraulics_open_20f_02.wav",
+        ")world/robot_parts/robot_hydraulics_open_pitched_20f_02.wav",
+        ")world/robot_parts/robot_hydraulics_open_pitched_20f_03.wav",
+        ")world/robot_parts/robot_hydraulics_open_pitched_20f_04.wav"
     }
 })

@@ -135,7 +135,7 @@ sceneDingOff = CreateSceneEntity("scenes/npc/glados_manual/ding_off.vcd")
 
 
 
---include("choreo/glados_coop_scenetable_include.lua")
+include("portal2/vscript/choreo/glados_coop_scenetable_include.lua")
 --include("choreo/glados_coop_scenetable_include_manual.lua")
 
 --Co-op sepcific stuff
@@ -2484,28 +2484,28 @@ function GladosPingIntroDone()
 	BlueInPortalTraining = 1
 	OrangeInPortalTraining = 1
 }
-
-function CoopStartTwoPortals(){
+]]
+function CoopStartTwoPortals()
 	GladosPlayVcd(1002)
-}
+end
 
-function CoopRadarRoom(){
+function CoopRadarRoom()
   LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire
 	GladosPlayVcd(1009)
 	EndSpeedRunTimer()
-}
+end
 
-function CoopBlueprintRoom(){
+function CoopBlueprintRoom()
   LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire
 	GladosPlayVcd(1055) 
 	EndSpeedRunTimer()
-}
-function CoopSecutiryRoom(){
+end
+function CoopSecutiryRoom()
   LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire
 	GladosPlayVcd(1196)
 	EndSpeedRunTimer()
-}
-
+end
+--[[
 function CoopTbeamSecurity()
 {
 	LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire

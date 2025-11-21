@@ -1,4 +1,3 @@
-print("[P2] glados.lua loaded")
 --ispaused()
 --IsPlayingBack()
 --EstimateLength()
@@ -397,6 +396,10 @@ function GladosPlayVcd(arg, IgnoreQueue, caller)
             end
 		end
 		--if queue is present & we're already playing a scene, add scene to queue
+		if not SceneTable[arg] then
+			print("GladosPlayVcd: ERROR - SceneTable entry "..tostring(arg).." does not exist (or is not converted)!")
+			return;
+		end
  		if SceneTable[arg].queue then
 	 		if IgnoreQueue == nil then
 				--queue if a specific character is talking 
@@ -541,7 +544,7 @@ function GladosPlayVcd(arg, IgnoreQueue, caller)
 			local idx, val
 			for idx, val in ipairs(SceneTable[arg].fires) do
 				if val.fireatstart then
-					printlDBG(">>>>>>ENT FIRE AT START: "..val.entity..":"+val.input)
+					printlDBG(">>>>>>ENT FIRE AT START: "..val.entity..":"..val.input)
 					EntFire(val.entity,val.input,val.parameter, val.delay)
                 end
 			end
@@ -2242,14 +2245,13 @@ function JailbreakComeOnComeOn()
 	WheatleyStopNag()	
 	GladosPlayVcd(514)
 end
---[[
+
 
 ----------------------------------------------------------------------------------------------------------------
 --Turret Factory -- sp_a2_bts4
 ----------------------------------------------------------------------------------------------------------------
 
-if (curMapName=="sp_a2_bts4")
-{
+if curMapName=="sp_a2_bts4" then
 	sp_a2_bts4_StillThinkingNagStage = 0
 	sp_a2_bts4_StillThinkingNagOK = false
 	sp_a2_bts4_StillThinkingNagIdx = 0
@@ -2263,62 +2265,51 @@ if (curMapName=="sp_a2_bts4")
 	sp_a2_bts4_Did_Big_Potato = false
 	sp_a2_bts4_Did_Volcano = 0
 	
-}	
+end	
 
 
 function FactoryWheatleyHey()
-{
 	GladosPlayVcd(515)
-}
+end
 
 function FactoryFollowMe()
-{
 	GladosPlayVcd(516)
-}
+end
 
 function FactoryAlmostThere()
-{
 	GladosPlayVcd(518)
-}
+end
 
 
 function FactoryTahDah()
-{
 	GladosPlayVcd(517)
-}
+end
 
 function FactoryScannerIntro()
-{
 	sp_a2_bts4_At_Window = true
-	if (!sp_a2_bts4_Intro_Talking)
-	{
+	if not sp_a2_bts4_Intro_Talking then
 		GladosPlayVcd(519)
-	}
-}
+	end
+end
 
 function FactoryScannerSpeech()
-{
 	GladosPlayVcd(519)
-}
+end
 
 function FactoryCheckAtWindowEnd()
-{
 	sp_a2_bts4_Intro_Talking = false
-	if (sp_a2_bts4_At_Window)
-	{
+	if sp_a2_bts4_At_Window then
 		FactoryScannerSpeech()
-	}
-}
+	end
+end
 
 function FactoryCheckAtWindowStart()
-{
 	sp_a2_bts4_Intro_Talking = true
-	if (sp_a2_bts4_At_Window)
-	{
+	if sp_a2_bts4_At_Window then
 		FactoryScannerSpeech()
-	}
-}
-
+	end
+end
+--[[
 
 function FactoryControlDoorHackIntro()
 {
@@ -2545,45 +2536,40 @@ function PlayerNotLookingAtScienceFairPotato() -- fires if player looks away fro
 ----------------------------------------------------------------------------------------------------------------
 -- BTS4 conveyor turret functions
 ----------------------------------------------------------------------------------------------------------------
-
+]]
 -- ========================================================
 -- Called when the player gets near the turret for the first time
 -- ========================================================
 
-if (curMapName=="sp_a2_bts4")
-{
+if curMapName=="sp_a2_bts4" then
 	sp_a2_bts4_redemption_turret_held = false
 	sp_a2_bts4_redemption_turret_babble_index = 0
 	sp_a2_bts4_redemption_turret_babbling = false
-}	
+end
 
 
 function SabotageFactoryRecycledTurretNoticesPlayer()
-{
 	GladosPlayVcd(439, nil, "conveyor_turret_body")
-}
+end
 
 
 -- ========================================================
 -- SP_A2_BTS4 ACHIEVEMENT - ACH.SAVE_REDEMPTION_TURRET
 -- ========================================================
 function bts4_redemption_line_turret_achievement()
-{	
 	-- award achievement after turret is done speaking
 	EntFire("achievement_redemption_line", "fireevent", 0, 0 )
-}
+end
 
 -- ========================================================
 -- Called every time the turret is picked up
 -- ========================================================
 function bts4_redemption_line_turret_pickup()
-{
 	sp_a2_bts4_redemption_turret_held = true
-	if (!sp_a2_bts4_redemption_turret_babbling)
-	{
+	if not sp_a2_bts4_redemption_turret_babbling then
 		GladosPlayVcd(614, nil, "conveyor_turret_body")
-	}	
-}
+	end
+end
 
 -- ========================================================
 -- Called every time the turret is dropped
@@ -2591,50 +2577,41 @@ function bts4_redemption_line_turret_pickup()
 -- so this function will get called
 -- ========================================================
 function bts4_redemption_line_turret_drop()
-{
 	sp_a2_bts4_redemption_turret_held = false
-}
+end
 
 function bts4_redemption_line_turret_babble_start()
-{
 	sp_a2_bts4_redemption_turret_babbling = true
-}
+end
 
 function bts4_redemption_line_turret_babble_end()
-{
-	local dly = RandomInt(2,5)
+	local dly = math.random(2,5)
 	sp_a2_bts4_redemption_turret_babbling = false
-	if (sp_a2_bts4_redemption_turret_held)
-	{
+	if sp_a2_bts4_redemption_turret_held then
 		EntFire("@glados","runscriptcode","bts4_redemption_line_turret_babble()",dly)
-	}
-}
+	end
+end
 
 
 function bts4_redemption_line_turret_babble()
-{
-	if (!sp_a2_bts4_redemption_turret_babbling)
-	{
-		if (sp_a2_bts4_redemption_turret_held)
-		{
-			if (sp_a2_bts4_redemption_turret_babble_index < 8)
-			{
-				sp_a2_bts4_redemption_turret_babble_index+=1
+	if not sp_a2_bts4_redemption_turret_babbling then
+		if sp_a2_bts4_redemption_turret_held then
+			if sp_a2_bts4_redemption_turret_babble_index < 8 then
+				sp_a2_bts4_redemption_turret_babble_index = sp_a2_bts4_redemption_turret_babble_index + 1
 				GladosPlayVcd(614+sp_a2_bts4_redemption_turret_babble_index, nil, "conveyor_turret_body")
-			}	
-		}
-	}	
-}
+			end
+		end
+	end
+end
 
 
 -- ========================================================
 -- Called if turret is not saved and goes through conveyor exit
 -- ========================================================
 function bts4_redemption_line_turret_not_saved()
-{
 	GladosCharacterStopScene("conveyor_turret_body")
 	GladosPlayVcd(613, nil, "conveyor_turret_body")
-}
+end
 
 -- ========================================================
 -- Called if player and turret are approaching the fizzler
@@ -2642,29 +2619,23 @@ function bts4_redemption_line_turret_not_saved()
 -- again!
 -- ========================================================
 function bts4_redemption_line_fizzler_approach()
-{
-	
-}
+end
 
 -- ========================================================
 -- Called if turret gets fizzled
 -- ========================================================
 function bts4_redemption_line_turret_fizzled()	
-{
 	GladosCharacterStopScene("conveyor_turret_body")
 	GladosPlayVcd(613, nil, "conveyor_turret_body")
-}
+end
 
 -- ========================================================
 -- Called when player gets into dummy shoot area
 -- ========================================================
 function bts4_redemption_line_turret_safe()
-{
-	
-}
+end
 
 
-]]
 ----------------------------------------------------------------------------------------------------------------
 --Turret Factory -- sp_a2_intro - incinerator
 ----------------------------------------------------------------------------------------------------------------
