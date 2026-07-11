@@ -1,1 +1,1 @@
-I've put a lot of work into this, so here's the current state. Right now, most of the system works. There's still a lot of missing sounds, but several of the scenes/voicelines play, and you can mostly progress naturally. I still have to do a lot of work to finish this.
+Fixes Portal 2 VScript code for GMod. The VCD system works completely (with minor bugs); characters will properly play their entire dialogue, although sometimes they will skip lines. Currently, the sound files are still mostly empty, so there aren't many sounds yet.
