@@ -1,7 +1,3 @@
---[[---------------------------------------------------------------------------
-    Portal 2 VScript helpers – optimised
----------------------------------------------------------------------------]]--
-
 -- ---------------------------------------------------------------------------
 -- Fast single-line exit helper
 local function early(ret) return ret end
@@ -10,7 +6,7 @@ local function early(ret) return ret end
 -- Fire an input on every entity that matches *targetname*.
 -- *param* and *delay* are optional.
 function EntFire(targetname, input, param, delay)
-    if targetname == "" then return end          -- empty string is the only bad value we need to guard
+    if targetname == "" then return end
     for _, ent in ipairs(ents.FindByName(targetname)) do
         if ent.Fire then ent:Fire(input, param or "", delay or 0) end
     end
@@ -84,3 +80,23 @@ function CreateSceneEntity(path)
 
     return ent
 end
+
+function ValidateScriptScope(ent)
+    if not ent.__scriptScope then
+        ent.__scriptScope = {}
+    end
+end
+
+function GetScriptScope(ent)
+    return ent.__scriptScope
+end
+
+-- Example use: curscene.DisconnectOutput("OnCompletion", "PlayNextScene")
+function ConnectOutput(hook, func)
+    hook.Add(hook, hook .. func .. "Hook", func)
+end
+
+function DisconnectOutput(hook, func)
+    hook.Remove(hook, hook .. func .. "Hook")
+end
+print("[P2] portal2_common.lua loaded")

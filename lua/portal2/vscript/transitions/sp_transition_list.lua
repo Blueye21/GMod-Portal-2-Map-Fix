@@ -1,4 +1,4 @@
-DBG = true
+Debug = true
 FORCE_GUN_AND_HALLWAY = 0
 
 FIRST_MAP_WITH_GUN = "sp_a1_intro4"
@@ -6,6 +6,11 @@ FIRST_MAP_WITH_UPGRADE_GUN = "sp_a2_laser_intro"
 FIRST_MAP_WITH_POTATO_GUN = "sp_a3_speed_ramp"
 LAST_PLAYTEST_MAP = "sp_a4_finale4"
 
+CreateConVar(
+	"LoopSinglePlayerMaps",
+	"false",
+	{ FCVAR_NOTIFY }
+)
 
 CHAPTER_TITLES = 
 {
@@ -20,10 +25,10 @@ CHAPTER_TITLES =
 	{ map = "sp_a4_finale1", title_text = "#portal2_Chapter9_Title", subtitle_text = "#portal2_Chapter9_Subtitle", displayOnSpawn = false,		displaydelay = 1.0 },
 }
 
--- Display the chapter title
+// Display the chapter title
 function DisplayChapterTitle()
-	for index, level in ipairs(CHAPTER_TITLES) do
-		if level.map == game.GetMap() then
+	for index, level in pairs(CHAPTER_TITLES) do
+		if (level.map == game.GetMap() ) then
 			EntFire( "@chapter_title_text", "SetTextColor", "210 210 210 128", 0.0 )
 			EntFire( "@chapter_title_text", "SetTextColor2", "50 90 116 128", 0.0 )
 			EntFire( "@chapter_title_text", "SetPosY", "0.32", 0.0 )
@@ -39,10 +44,10 @@ function DisplayChapterTitle()
 	end
 end
 
--- Display the chapter title on spawn if it is flagged to show up on spawn
+// Display the chapter title on spawn if it is flagged to show up on spawn
 function TryDisplayChapterTitle()
-	for index, level in ipairs(CHAPTER_TITLES) do
-		if level.map == game.GetMap() and level.displayOnSpawn then
+	for index, level in pairs(CHAPTER_TITLES) do
+		if (level.map == game.GetMap() and level.displayOnSpawn ) then
 			DisplayChapterTitle()
 		end
 	end
@@ -52,84 +57,84 @@ LOOP_TIMER = 0
 
 initialized = false
 
--- This is the order to play the maps
-MapPlayOrder = {
+// This is the order to play the maps
+MapPlayOrder= {
 
--- ===================================================
--- ====================== ACT 1 ======================
--- ===================================================
+// ===================================================
+// ====================== ACT 1 ======================
+// ===================================================
 
--- ---------------------------------------------------
--- 	Intro
--- ---------------------------------------------------
-"sp_a1_intro1",				-- motel to box-on-button
-"sp_a1_intro2",				-- portal carousel
-"sp_a1_intro3",				-- fall-through-floor, dioramas, portal gun
-"sp_a1_intro4",				-- box-in-hole for placing on button
-"sp_a1_intro5",				-- fling hinting
-"sp_a1_intro6",				-- fling training
-"sp_a1_intro7",				-- wheatley meetup
-"sp_a1_wakeup",				-- glados 
+// ---------------------------------------------------
+// 	Intro
+// ---------------------------------------------------
+"sp_a1_intro1",				// motel to box-on-button
+"sp_a1_intro2",				// portal carousel
+"sp_a1_intro3",				// fall-through-floor, dioramas, portal gun
+"sp_a1_intro4",				// box-in-hole for placing on button
+"sp_a1_intro5",				// fling hinting
+"sp_a1_intro6",				// fling training
+"sp_a1_intro7",				// wheatley meetup
+"sp_a1_wakeup",				// glados 
 	"@incinerator",
 
--- ===================================================
--- ====================== ACT 2 ======================
--- ===================================================
+// ===================================================
+// ====================== ACT 2 ======================
+// ===================================================
 
-"sp_a2_intro", 		-- upgraded portal gun track
+"sp_a2_intro", 		// upgraded portal gun track
 
--- ---------------------------------------------------
---	Lasers
--- ---------------------------------------------------
+// ---------------------------------------------------
+//	Lasers
+// ---------------------------------------------------
 "sp_a2_laser_intro",
 "sp_a2_laser_stairs",
 "sp_a2_dual_lasers",
 "sp_a2_laser_over_goo",
 
--- ---------------------------------------------------
--- 	Catapult
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Catapult
+// ---------------------------------------------------
 "sp_a2_catapult_intro",
 "sp_a2_trust_fling",
 
--- ---------------------------------------------------
---	More Lasers
--- ---------------------------------------------------
+// ---------------------------------------------------
+//	More Lasers
+// ---------------------------------------------------
 "sp_a2_pit_flings",
 "sp_a2_fizzler_intro",
 
--- ---------------------------------------------------
---	Lasers + Catapult
--- ---------------------------------------------------
+// ---------------------------------------------------
+//	Lasers + Catapult
+// ---------------------------------------------------
 "sp_a2_sphere_peek",
 "sp_a2_ricochet",
 
--- ---------------------------------------------------
--- 	Bridges
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Bridges
+// ---------------------------------------------------
 "sp_a2_bridge_intro",
 "sp_a2_bridge_the_gap",
 
--- ---------------------------------------------------
--- 	Turrets
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Turrets
+// ---------------------------------------------------
 "sp_a2_turret_intro",
-"sp_a2_laser_relays", -- breather
+"sp_a2_laser_relays", // breather
 "sp_a2_turret_blocker",
-"sp_a2_laser_vs_turret", -- Elevator Glados Chat - Should be removed?
+"sp_a2_laser_vs_turret", // Elevator Glados Chat - Should be removed?
 
--- ---------------------------------------------------
--- 	Graduation
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Graduation
+// ---------------------------------------------------
 "sp_a2_pull_the_rug",
-"sp_a2_column_blocker",		-- Elevator_vista
+"sp_a2_column_blocker",		// Elevator_vista
 "sp_a2_laser_chaining",
---"sp_a2_turret_tower",
+//"sp_a2_turret_tower",
 "sp_a2_triple_laser",
 
--- ---------------------------------------------------
--- 	Sabotage
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Sabotage
+// ---------------------------------------------------
 
 "sp_a2_bts1",
 "sp_a2_bts2",
@@ -138,19 +143,19 @@ MapPlayOrder = {
 "sp_a2_bts5",
 "sp_a2_bts6",
 
--- ---------------------------------------------------
--- 	Glados Chamber Sequence
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Glados Chamber Sequence
+// ---------------------------------------------------
 "sp_a2_core",
 
 
--- ===================================================
--- ====================== ACT 3 ======================
--- ===================================================
+// ===================================================
+// ====================== ACT 3 ======================
+// ===================================================
 
--- ---------------------------------------------------
--- 	Underground
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Underground
+// ---------------------------------------------------
 
 	"@bottomless_pit",
 "sp_a3_00",
@@ -173,58 +178,58 @@ MapPlayOrder = {
 	"@hallway",
 "sp_a3_end",
 
--- ===================================================
--- ====================== ACT 4 ======================
--- ===================================================
+// ===================================================
+// ====================== ACT 4 ======================
+// ===================================================
 
--- ---------------------------------------------------
--- 	Recapture
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Recapture
+// ---------------------------------------------------
 "sp_a4_intro",
 
--- ---------------------------------------------------
--- 	Tractor beam
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Tractor beam
+// ---------------------------------------------------
 "sp_a4_tb_intro",
 "sp_a4_tb_trust_drop",	
---	"@hallway",
+//	"@hallway",
 "sp_a4_tb_wall_button",
---	"@hallway",
+//	"@hallway",
 "sp_a4_tb_polarity",
---	"@hallway",
-"sp_a4_tb_catch",	-- GRAD
+//	"@hallway",
+"sp_a4_tb_catch",	// GRAD
 
--- ---------------------------------------------------
--- 	Crushers
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Crushers
+// ---------------------------------------------------
 
--- ---------------------------------------------------
--- 	Graduation Combos
--- ---------------------------------------------------
-"sp_a4_stop_the_box",	-- Grad?
---	"@hallway",
-"sp_a4_laser_catapult", -- Grad
---	"@hallway",
---"sp_catapult_course"
---	"@hallway",
---"sp_box_over_goo", -- Grad
---	"@hallway",
+// ---------------------------------------------------
+// 	Graduation Combos
+// ---------------------------------------------------
+"sp_a4_stop_the_box",	// Grad?
+//	"@hallway",
+"sp_a4_laser_catapult", // Grad
+//	"@hallway",
+//"sp_catapult_course"
+//	"@hallway",
+//"sp_box_over_goo", // Grad
+//	"@hallway",
 "sp_a4_laser_platform",
 
--- ---------------------------------------------------
--- Tbeam + Paint
--- ---------------------------------------------------
---"sp_paint_jump_tbeam",
---	"@hallway",
+// ---------------------------------------------------
+// Tbeam + Paint
+// ---------------------------------------------------
+//"sp_paint_jump_tbeam",
+//	"@hallway",
 "sp_a4_speed_tb_catch",
---	"@hallway",
-"sp_a4_jump_polarity",	-- GRAD
---	"@hallway",
---"sp_paint_portal_tbeams",
+//	"@hallway",
+"sp_a4_jump_polarity",	// GRAD
+//	"@hallway",
+//"sp_paint_portal_tbeams",
 
--- ---------------------------------------------------
--- Wheatley Escape
--- ---------------------------------------------------
+// ---------------------------------------------------
+// Wheatley Escape
+// ---------------------------------------------------
 
 "sp_a4_finale1",
 	"@hallway",
@@ -233,145 +238,135 @@ MapPlayOrder = {
 "sp_a4_finale3",
 	"@hallway",
 
--- ---------------------------------------------------
--- 	FIXME: WHEATLEY BATTLE
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	FIXME: WHEATLEY BATTLE
+// ---------------------------------------------------
 
 "sp_a4_finale4",
 
--- ---------------------------------------------------
--- 	Demo files
--- ---------------------------------------------------
+// ---------------------------------------------------
+// 	Demo files
+// ---------------------------------------------------
 "demo_intro",
 "demo_underground",
 "demo_paint",
 }
 
 
--- --------------------------------------------------------
--- OnPostTransition - we just transitioned, teleport us to the correct place.
--- --------------------------------------------------------
+// --------------------------------------------------------
+// OnPostTransition - we just transitioned, teleport us to the correct place.
+// --------------------------------------------------------
 function OnPostTransition()
 	local foundMap = false
 	
-	for index, map in ipairs(MapPlayOrder) do
-		if game.GetMap() == MapPlayOrder[index] then
+	for index, map in pairs(MapPlayOrder) do
+		if (game.GetMap() == MapPlayOrder[index]) then
 			foundMap = true
 			
-			-- hook up our entry elevator
-			if index - 1 >= 0 then
-				if MapPlayOrder[index-1]:find("@", 1, true) == nil then
+			// hook up our entry elevator
+			if( index >= 0 ) then
+				if( string.find(MapPlayOrder[index], "@") == nil ) then
 					print( "Teleporting to default start pos" )
 					EntFire( "@elevator_entry_teleport", "Teleport", 0, 0 )		
 					EntFire( "@arrival_teleport", "Teleport", 0, 0 )		
 				else
-					print( "Trying to teleport to " .. MapPlayOrder[index - 1] .. "_teleport" )
-					EntFire( MapPlayOrder[index - 1] .. "_entry_teleport", "Teleport", 0, 0.0 )			
+					print( "Trying to teleport to " .. MapPlayOrder[index] .. "_teleport" )
+					EntFire( MapPlayOrder[index] .. "_entry_teleport", "Teleport", 0, 0.0 )			
 				end
 			end
 			break
 		end
 	end
 		
-	if foundMap == false then
+	if (foundMap == false ) then
 		EntFire( "@elevator_entry_teleport", "Teleport", 0, 0 )
 		EntFire( "@arrival_teleport", "Teleport", 0, 0 )		
 	end
 end
 
--- --------------------------------------------------------
--- EntFire_MapLoopHelper
--- --------------------------------------------------------
-function EntFire_MapLoopHelper(classname, suffix, command, param, delay)
-    -- Calls EntFire on an entity of a given type named with the given suffix.
-    -- Deals with instance name mangling (though it doesn't guarantee uniqueness)
-
-    local suffix_len = #suffix
-
-    local ent = Entities:FindByClassname(nil, classname)
-    while ent do
-        local ent_name = ent:GetName()
-
-        -- Find suffix in the entity name
-        local suffix_offset = string.find(ent_name, suffix, 1, true)
-
-        -- Check if the suffix occurs at the very end of the name
-        if suffix_offset and suffix_offset == (#ent_name - suffix_len + 1) then
-            EntFire(ent_name, command, param, delay)
-            return
-        end
-
-        ent = Entities:FindByClassname(ent, classname)
-    end
-
-    print("MAPLOOP: ---- ERROR! Failed to find entity " .. suffix .. " while initiating map transition")
+// --------------------------------------------------------
+// EntFire_MapLoopHelper
+// --------------------------------------------------------
+function EntFire_MapLoopHelper( classname, suffix, command, param, delay )
+	// This calls EntFire on an entity of a given type, named with the given suffix.
+	// This deals with instance name mangling (though it doesn't guarantee uniqueness)
+	local suffix_len = #suffix
+	for _, ent in ipairs( ents.FindByClass( classname ) ) do
+		local ent_name = ent:GetName()
+		local suffix_offset = string.find(ent_name, suffix )
+		if ( ( suffix_offset != nil ) and ( suffix_offset == ( #ent_name - suffix_len ) ) ) then
+			EntFire( ent_name, command, param, delay )
+			return
+		end
+	end
+	print( "MAPLOOP: ---- ERROR! Failed to find entity " .. suffix .. " while initiating map transition" );
 end
 
-
--- --------------------------------------------------------
--- Think
--- --------------------------------------------------------
+// --------------------------------------------------------
+// Think
+// --------------------------------------------------------
 function Think()
-	-- Start the game loop if the cvar is set
-	if initialized and LoopSinglePlayerMaps() then
-		-- initialize the timer
-		if LOOP_TIMER == 0 then
-			LOOP_TIMER = CurTime() + 10 -- restart time in seconds
+	// Start the game loop if the cvar is set
+	if ( initialized and GetConVar("LoopSinglePlayerMaps"):GetBool() ) then
+		// initialize the timer
+		if( LOOP_TIMER == 0 ) then
+			LOOP_TIMER = CurTime() + 10 // restart time in seconds
 		end
 		
-		-- transition to the next map if the timer has expired
-		if LOOP_TIMER < CurTime() then
-			-- reset loop timer
+		// transition to the next map if the timer has expired
+		if ( LOOP_TIMER < CurTime() ) then
+			// reset loop timer
 			LOOP_TIMER = 0
 
 			print( "\nMAPLOOP: timer expired, moving on..." )
 
-			-- Ensure point_viewcontrollers are disabled
+			// Ensure point_viewcontrollers are disabled
 			EntFire( "point_viewcontrol", "disable", 0, 0 )
 		
-			-- Change the level (this sequence was originally in the 'transition_without_survey' logic_relay)
+			// Change the level (this sequence was originally in the 'transition_without_survey' logic_relay)
 			EntFire_MapLoopHelper( "trigger_once",   "survey_trigger",    "Disable",       "",                    0.0 )
 			EntFire_MapLoopHelper( "env_fade",       "exit_fade",         "Fade",          "",                    0.0 )
 			EntFire_MapLoopHelper( "point_teleport", "exit_teleport",     "Teleport",      "",                    0.3 )
-			EntFire_MapLoopHelper( "logic_script",   "transition_script", "RunScriptCode", "TransitionFromMap()", 0.4 )
+			--EntFire_MapLoopHelper( "logic_script",   "transition_script", "RunScriptCode", "TransitionFromMap()", 0.4 )
+			timer.simple(0.4, TransitionFromMap)
 		end
 	end
 	
 	
-	if initialized then
+	if (initialized) then
 		return
 	end
 	initialized = true
 
-	-- position fixup for sp_a3_01, in case player has fallen outside map
+	// position fixup for sp_a3_01, in case player has fallen outside map
 
-	if game.GetMap() == "sp_a3_01" then
+	if (game.GetMap() == "sp_a3_01") then
 		print( "--------------- FIXING PLAYER POSITION FOR sp_a3_01" )
 
-		local destination_name = "knockout-teleport" -- targetname of the destination entity
+		local destination_name = "knockout-teleport" // targetname of the destination entity
                
 		local player_ent = nil
 
 		local destination_ent = nil
 
-		-- find the player
-		player_ent = Entities.FindByClassname( player_ent, "player" )   
+		// find the player
+		player_ent = Entity(1)
 
-		if player_ent == nil then
+		if ( player_ent == nil  ) then
 			print("*** Cannot find player. Aborting!")
 			return;
 		end
 
-		-- find the destination entity
-		destination_ent = Entities.FindByName( destination_ent, destination_name )   
+		// find the destination entity
+		destination_ent = ents.FindByName( destination_ent, destination_name )   
 
-		if destination_ent == nil then
+		if ( destination_ent == nil  ) then
 			print("*** Cannot find destination entity " .. destination_name .. ". Aborting!")
 			return;
 		end
                 
-		-- move the player to the destination  
-		player:SetOrigin( destination_ent.GetRenderOrigin) 
+		// move the player to the destination
+		player_ent:SetOrigin( destination_ent:GetOrigin() )       
 	end
 
 	DumpMapList()
@@ -380,77 +375,85 @@ function Think()
 	local portalGunSecondCommand = ""
 	local foundMap = false
 	
-	for index, map in ipairs(MapPlayOrder) do
-		if MapPlayOrder[index] == FIRST_MAP_WITH_GUN then
-			portalGunCommand = "give weapon_portalgun"
-		elseif MapPlayOrder[index] == FIRST_MAP_WITH_UPGRADE_GUN then
-			portalGunSecondCommand = "give weapon_portalgun"
-		elseif MapPlayOrder[index] == FIRST_MAP_WITH_POTATO_GUN then
-			portalGunSecondCommand = "give weapon_portalgun"
+	for index, map in pairs(MapPlayOrder) do
+		if (MapPlayOrder[index] == FIRST_MAP_WITH_GUN) then
+			portalGunCommand = "give_portalgun"
+		elseif (MapPlayOrder[index] == FIRST_MAP_WITH_UPGRADE_GUN) then
+			portalGunSecondCommand = "upgrade_portalgun"
+		elseif (MapPlayOrder[index] == FIRST_MAP_WITH_POTATO_GUN) then
+			portalGunSecondCommand = "upgrade_potatogun"
 		end
 		
-		if game.GetMap() == MapPlayOrder[index] then
+		if (game.GetMap() == MapPlayOrder[index]) then
 			break
 		end
 	end
 
 	TryDisplayChapterTitle()
 	
-	if portalGunCommand ~= "" and game.GetMap() ~= "sp_a2_intro" and game.GetMap() ~= "sp_a3_01" then
+	if (portalGunCommand != "" and game.GetMap() != "sp_a2_intro" and game.GetMap() != "sp_a3_01" ) then
 		print( "=======================Trying to run " .. portalGunCommand )
 		EntFire( "command", "Command", portalGunCommand, 0.0 )
 		EntFire( "@command", "Command", portalGunCommand, 0.0 )
-		player:ConCommand(portalGunCommand)
+		timer.Simple(1, function()
+			local ply = Entity(1)
+			ply:ConCommand(portalGunCommand)
+		end)
 	end
 
-	if portalGunSecondCommand ~= "" then
+	if (portalGunSecondCommand != "") then
 		print( "=======================Trying to run " .. portalGunSecondCommand )
 		EntFire( "command", "Command", portalGunSecondCommand, 0.1 )
 		EntFire( "@command", "Command", portalGunSecondCommand, 0.1 )
-		player:ConCommand(portalGunSecondCommand)
+		timer.Simple(1, function()
+			local ply = Entity(1)
+			ply:ConCommand(portalGunCommand)
+		end)
 	end
 	
 end
 
--- --------------------------------------------------------
--- TransitionFromMap
--- --------------------------------------------------------
+hook.Add("Think", "TransitionListThinkHook", Think)
+
+// --------------------------------------------------------
+// TransitionFromMap
+// --------------------------------------------------------
 function DumpMapList()
-	if DBG then
+	if(Debug) then
 		local mapcount = 0
 		
 		print("================DUMPING MAP PLAY ORDER")
 		
-		for index, map in ipairs(MapPlayOrder) do
-			-- weed out our transitions
-			if not MapPlayOrder[index]:find("@", 1, true) then
-				if game.GetMap() == MapPlayOrder[index] then
+		for index, map in pairs(MapPlayOrder ) do
+			// weed out our transitions
+			if( string.find(MapPlayOrder[index], "@") == nil ) then
+				if( game.GetMap() == MapPlayOrder[index] ) then
 					print( mapcount .. " " .. MapPlayOrder[index] .. " =-- You Are Here" )
 				else
-					print( mapcount + " " + MapPlayOrder[index] )
+					print( mapcount .. " " .. MapPlayOrder[index] )
 				end
 				mapcount = mapcount + 1
 			end
 			
 		end
 		print( mapcount .. " maps total." )
-
+		
 		print("================END DUMP")
 	end
 end
 
--- --------------------------------------------------------
--- TransitionFromMap
--- --------------------------------------------------------
+// --------------------------------------------------------
+// TransitionFromMap
+// --------------------------------------------------------
 function TransitionFromMap()
 	local next_map = nil
-	for index, map in ipairs(MapPlayOrder) do
-		if game.GetMap() == MapPlayOrder[index] then
-			-- make good
+	for index, map in pairs(MapPlayOrder ) do
+		if( game.GetMap() == MapPlayOrder[index] ) then
+			// make good
 			local skipIndex = index
-			for i = 1, 2 do
-				if skipIndex + 1 < #MapPlayOrder then
-					if MapPlayOrder[skipIndex + 1]:find("@", 1, true) ~= nil then
+			for i=1,2 do
+				if( skipIndex + 1 < #MapPlayOrder ) then
+					if( string.find(MapPlayOrder[skipIndex + 1], "@") != nil ) then
 						skipIndex = skipIndex + 1
 					else
 						break
@@ -458,32 +461,32 @@ function TransitionFromMap()
 				end
 			end	
 			
-			if skipIndex + 1 < #MapPlayOrder and game.GetMap() ~= LAST_PLAYTEST_MAP then
+			if( ( skipIndex + 1 < #MapPlayOrder ) and
+			    ( game.GetMap() != LAST_PLAYTEST_MAP  )    ) then
 				next_map = MapPlayOrder[ skipIndex + 1 ]
-				if DBG then print( "Map " .. game.GetMap() .. " connects to " .. next_map ) end
+				if(Debug) then print( "Map " .. game.GetMap() .. " connects to " .. next_map ) end
 
-				if not ents.FindByName("@changelevel") then
-					if DBG then print( "('@changelevel' entity missing, using 'map' command instead)" ) end
-					RunConsoleCommand( "map ", next_map );
+				if ( ents.FindByName( "@changelevel" ) == nil ) then
+					if(Debug) then print( "('@changelevel' entity missing, using 'changelevel' command instead)" ) end
+					RunConsoleCommand( "changelevel " .. next_map );
 				else
-					EntFire( "@changelevel", "Changelevel", next_map, 0.0 )	
-					RunConsoleCommand("changelevel", next_map)		
+					EntFire( "@changelevel", "Changelevel", next_map, 0.0 )			
 				end
 			end
 		end
 	end
 	
-	if next_map == nil then
-		if DBG then print( "Map " .. game.GetMap() .. " is the last map" ) end
+	if ( next_map == nil ) then
+		if(Debug) then print( "Map " .. game.GetMap() .. " is the last map" ) end
 		EntFire( "end_of_playtest_text", "display", 0 )
 		EntFire( "@end_of_playtest_text", "display", 0 )
 
-		-- If we are in the map loop and at the end of the list, start over at the beginning
-		if LoopSinglePlayerMaps() then
+		// If we are in the map loop and at the end of the list, start over at the beginning
+		if ( LoopSinglePlayerMaps() ) then
 			print( "MAPLOOP: No more maps, restarting loop." )
 			next_map = MapPlayOrder[1]
-			if Entities.FindByName( nil, "@changelevel" ) == nil then
-				RunConsoleCommand( "map ", next_map );
+			if ( ents.FindByName( "@changelevel" ) == nil ) then
+				RunConsoleCommand( "changelevel " + next_map );
 			else
 				EntFire( "@changelevel", "Changelevel", next_map, 0.0 )			
 			end
@@ -493,24 +496,25 @@ function TransitionFromMap()
 	print( "" )
 end
 
--- --------------------------------------------------------
--- MakeBatFile - dumps the map list in a formatted way, for easy recompilin'
--- --------------------------------------------------------
+// --------------------------------------------------------
+// MakeBatFile - dumps the map list in a formatted way, for easy recompilin'
+// --------------------------------------------------------
 function MakeBatFile()
 		local mapcount = 0
 		
 		print("================DUMPING maps formatted for batch file")
 		
-		for index, map in ipairs(MapPlayOrder) do
+		for index, map in pairs(MapPlayOrder ) do
 			print( "call build " .. MapPlayOrder[index] )	
 		end
 		
-		for index, map in ipairs(MapPlayOrder) do
+		for index, map in pairs(MapPlayOrder ) do
 			print( "call p2_buildcubemaps " .. MapPlayOrder[index] )	
 		end
-	end
-
--- this lets the elevator know that we are ready to transition.
-function TransitionReady()
-	TransitionReady = 1
 end
+
+// this lets the elevator know that we are ready to transition.
+function TransitionReady()
+	GlTransitionReady = 1	
+end
+if Debug then print("[P2] sp_transition_list.lua loaded") end

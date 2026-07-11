@@ -1,61 +1,60 @@
-name = "dummyshoot_conveyor_1_turret_1&0371"
 function PlayStuckSound()
-	print("=================I AM TURRET NAMED: " .. name )
+	print("=================I AM TURRET NAMED: " .. self:GetName() )
 	
-	TurretVoManager.TurretStuck(name)
+	TurretVoManager.TurretStuck(self)
 end
 
 -- -------------------------------------------------------------------
--- Called when a functioning turret starts the  test and will pass
+-- Called when a functioning turret starts the self test and will pass
 -- -------------------------------------------------------------------
 function FunctioningTurretPass()
-	print("=================TURRET NAME: " .. name )
-	TurretVoManager.GoodTurretPass(name)
+	print("=================TURRET NAME: " .. self:GetName() )
+	TurretVoManager.GoodTurretPass(self)
 	--ScannerPassTurret()
 end
 
 -- -------------------------------------------------------------------
--- Called when a functioning turret starts the  test and will fail
+-- Called when a functioning turret starts the self test and will fail
 -- -------------------------------------------------------------------
 function FunctioningTurretFail()
-	TurretVoManager.GoodTurretTest(name)
+	TurretVoManager.GoodTurretTest(self)
 	--ScannerRejectTurret()
 end
 
 -- -------------------------------------------------------------------
--- Called when a malfunctioning turret starts the  test and will pass
+-- Called when a malfunctioning turret starts the self test and will pass
 -- -------------------------------------------------------------------
 function MalfunctioningTurretPass()
-	--.EmitSound("turret.TurretStuckInTube01")
-	TurretVoManager.DefectTurretPass(name)
+	--self.EmitSound("turret.TurretStuckInTube01")
+	TurretVoManager.DefectTurretPass(self)
 	--ScannerPassTurret()
 end
 
 -- -------------------------------------------------------------------
--- Called when a malfunctioning turret starts the  test and will fail
+-- Called when a malfunctioning turret starts the self test and will fail
 -- -------------------------------------------------------------------
 function MalfunctioningTurretFail()
-	--.EmitSound("turret.TurretStuckInTubeGoodbye01")
-	TurretVoManager.DefectTurretTest(name)
+	--self.EmitSound("turret.TurretStuckInTubeGoodbye01")
+	TurretVoManager.DefectTurretTest(self)
 	--ScannerRejectTurret()
 end
 
 function MalfunctioningTurretFling()
-	TurretVoManager.DefectTurretFail(name)
+	TurretVoManager.DefectTurretFail(self)
 end
 
 function FunctioningTurretFling()
-	TurretVoManager.GoodTurretFail(name)
+	TurretVoManager.GoodTurretFail(self)
 end
 
 function grabbedDefect()
 	print("==========GRABBED A TURRET!")
-	TurretVoManager.grabbedDefectTurret(name)
+	TurretVoManager.grabbedDefectTurret(self)
 end
 
 function MalfunctioningTurretSneakBy()
 	print("===STARTING SNEAK!!!")
-	TurretVoManager.DefectTurretSneakBy(name)
+	TurretVoManager.DefectTurretSneakBy(self)
 end
 
 -- =======================================================================
@@ -66,8 +65,8 @@ end
 -- Precache sounds we will emit
 -- -------------------------------------------------------------------
 function Precache()
-	--.PrecacheSoundScript( "turret.TurretStuckInTube01" )
-	--.PrecacheSoundScript( "turret.TurretStuckInTubeGoodbye01" )
+	--self.PrecacheSoundScript( "turret.TurretStuckInTube01" )
+	--self.PrecacheSoundScript( "turret.TurretStuckInTubeGoodbye01" )
 end
 
 -- -------------------------------------------------------------------
@@ -107,14 +106,14 @@ end
 -- Called when a functioning turret is in position to shoot a dummy
 -- -------------------------------------------------------------------
 function FunctioningTurretReachedDummyShootPosition()
-	TurretVoManager.GoodTurretShootPosition(name)
+	TurretVoManager.GoodTurretShootPosition(self)
 end
 
 -- -------------------------------------------------------------------
 -- Called when a malfunctioning turret is in position to shoot a dummy
 -- -------------------------------------------------------------------
 function MalfunctioningTurretReachedDummyShootPosition()
-	TurretVoManager.DefectTurretShootPosition(name)
+	TurretVoManager.DefectTurretShootPosition(self)
 end
 
 
@@ -137,32 +136,32 @@ end
 ----------------------------------------------------------------------------------------------------------------
 DBG = true
 
-if not GlobalTurretFactoryQueue then
+if not self.GlobalTurretFactoryQueue then
 	-- set up global queue
 	GlobalTurretFactoryQueue = {}
 end
 
 function OnPostSpawn()
-	if not GlobalTurretFactoryQueue then
+	if not self.GlobalTurretFactoryQueue then
 		QueueInitialize()
-		if DBG then print("===== Initializing QUEUE.  Length: " .. GlobalTurretFactoryQueue:len()) end
+		if DBG then print("===== Initializing QUEUE.  Length: " .. #GlobalTurretFactoryQueue ) end
 	end
 end
 
 --Initialize the queue
 function QueueInitialize()
-	GlobalTurretFactoryQueue = {}
+	table.Empty(GlobalTurretFactoryQueue)
 end
 
 --Add a scene to the queue
 function QueueAdd()
-	GlobalTurretFactoryQueue.append( name )
-	if DBG then print("====== Adding " .. name .. " to queue. Length = " .. GlobalTurretFactoryQueue:len() ) end
-	if GlobalTurretFactoryQueue:len() > 4 then
-		if DBG then print("====== Turret queue reached " .. GlobalTurretFactoryQueue:len() .. ". Removing turret " .. GlobalTurretFactoryQueue[1] .. " New queue Length = " .. GlobalTurretFactoryQueue:len() ) end
+	table.insert(GlobalTurretFactoryQueue, self:GetName())
+	if DBG then print("====== Adding " .. self:GetName() .. " to queue. Length = " .. #GlobalTurretFactoryQueue ) end
+	if #GlobalTurretFactoryQueue > 4 then
+		if DBG then print("====== Turret queue reached " .. #GlobalTurretFactoryQueue .. ". Removing turret " .. GlobalTurretFactoryQueue[1] .. " New queue Length = " .. #GlobalTurretFactoryQueue ) end
 		
 		-- detonate turret
-		EntFire( GlobalTurretFactoryQueue[0], "destruct", 0, 0 )
+		EntFire( GlobalTurretFactoryQueue[1], "selfdestruct", 0, 0 )
 		
 		-- remove the turret from the queue
 		QueueDeleteFirstItem()
@@ -171,7 +170,7 @@ end
 
 --Returns number of items in the queue
 function QueueLen()
-	return GlobalTurretFactoryQueue:len()
+	return #GlobalTurretFactoryQueue
 end
 
 --Delete a single item by index from the queue
@@ -180,21 +179,21 @@ function QueueDelete( index )
 		return false
 	end
 	-- remove from queue
- 	GlobalTurretFactoryQueue[index] = nil
+	table.remove(GlobalTurretFactoryQueue, index)
 end
 
---Sort through queue and remove  if found
-function RemoveFromQueue()
-	turretname = name
-	if DBG then print("===== ATTEMPTING to remove  from queue: " .. turretname ) end
+--Sort through queue and remove self if found
+function RemoveSelfFromQueue()
+	turretname = self:GetName()
+	if DBG then print("===== ATTEMPTING to remove self from queue: " .. turretname ) end
 	
 	if QueueLen()==0 then
 		return false
 	end
-	for index, val in ipairs(GlobalTurretFactoryQueue) do
+	for index, val in pairs(GlobalTurretFactoryQueue) do
 		if turretname == GlobalTurretFactoryQueue[index] then
 			if DBG then print(" === removing #" .. index .. " named: " .. GlobalTurretFactoryQueue[index] ) end
- 			GlobalTurretFactoryQueue[index] = nil
+			table.remove(GlobalTurretFactoryQueue, index)
  			return true
  		end
 	end
@@ -205,3 +204,4 @@ end
 function QueueDeleteFirstItem()
 	QueueDelete(1)
 end
+OnPostSpawn()

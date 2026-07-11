@@ -1,9 +1,8 @@
-print("[P2] video_splitter.lua loaded")
 // --------------------------------------------------------
 // StartVideo
 // --------------------------------------------------------
 
-ElevatorVideos =
+ElevatorVideos = 
 {
 	{ map = "sp_a1_intro1", arrival = "", departure = "" },
 	{ map = "sp_a1_intro2", arrival = "", departure = "" },
@@ -48,63 +47,62 @@ ElevatorVideos =
 	{ map = "sp_a4_finale1",		arrival = "bluescreen.bik", departure = "" },
 }
 
-local ARRIVAL_VIDEO = 0
-local DEPARTURE_VIDEO = 1
-local ARRIVAL_DESTRUCTED_VIDEO = 2
-local DEPARTURE_DESTRUCTED_VIDEO = 3
+ARRIVAL_VIDEO = 0
+DEPARTURE_VIDEO = 1
+ARRIVAL_DESTRUCTED_VIDEO = 2
+DEPARTURE_DESTRUCTED_VIDEO = 3
 
-local OVERRIDE_VIDEOS = 0
+OVERRIDE_VIDEOS = 0
 
-local FIRST_CLEAN_MAP = "sp_a2_catapult_intro"
+FIRST_CLEAN_MAP = "sp_a2_catapult_intro"
 
 function Precache()
-    -- Use a table property on this script to track precaching
-    if not self.PrecachedVideos then
-        -- Uncomment if you want to prevent double precaching
-        -- self.PrecachedVideos = true
+	if self.PrecachedVideos then
+		// don't do anything
+	else
+		// Commenting this line out because it prevents properly re-precaching movies after loading a save game.
+		// The cost is that we end up running this code below about 2x too often, but it's fairly cheap and not realtime code anyways...
+		//::PrecachedVideos = 1
 
-        local mapName = game.GetMap()
-
-        for _, level in ipairs(ElevatorVideos) do
-            if level.map == mapName then
-                local movieName
-
-                -- Additional movie
-                if level.additional and level.additional ~= "" then
-                    movieName = "addons/gmod-portal-2-map-fix-main/media/" .. level.additional
-                    -- print("Pre-caching movie: " .. movieName)
-                    PrecacheMovie(movieName)
-                end
-
-                -- Arrival movie
-                if level.arrival and level.arrival ~= "" then
-                    movieName = "addons/gmod-portal-2-map-fix-main/media/"
-                    if OVERRIDE_VIDEOS == 1 then
-                        movieName = movieName .. "entry_emergency.bik"
-                    else
-                        movieName = movieName .. level.arrival
-                    end
-                    -- print("Pre-caching movie: " .. movieName)
-                    PrecacheMovie(movieName)
-                end
-
-                -- Departure movie
-                if level.departure and level.departure ~= "" then
-                    movieName = "addons/gmod-portal-2-map-fix-main/media/"
-                    if OVERRIDE_VIDEOS == 1 then
-                        movieName = movieName .. "exit_emergency.bik"
-                    else
-                        movieName = movieName .. level.departure
-                    end
-                    -- print("Pre-caching movie: " .. movieName)
-                    PrecacheMovie(movieName)
-                end
-            end
-        end
-    end
+		local mapName = game.GetMap()
+		for index, level in ipairs(ElevatorVideos) do
+			if (level.map == mapName) then
+				local movieName
+				if ( level.additional and level.additional != "" ) then
+					movieName = "media\\" .. level.additional
+					//printl( "Preching movie: " + movieName )
+					PrecacheMovie( movieName )
+				end
+				
+				if (level.arrival and level.arrival != "" )	then
+					movieName = "media\\"
+					if( OVERRIDE_VIDEOS == 1 ) then
+						movieName = movieName .. "entry_emergency.bik"
+					else
+						movieName = movieName .. level.arrival
+					end
+				
+					//printl( "Preching movie: " + movieName )
+					PrecacheMovie( movieName )
+				end
+				
+				if (level.departure and level.departure != "" )	then
+					movieName = "media\\"
+					if( OVERRIDE_VIDEOS == 1 ) then
+						movieName = movieName .. "exit_emergency.bik"
+					else
+						movieName = movieName .. level.departure
+					end
+				
+					//printl( "Preching movie: " + movieName )
+					PrecacheMovie( movieName )
+				end
+			end
+		end
+	end
 end
 
---[[
+// stubs to supress error - will delete these soon.
 function StopEntryVideo(width,height)
 end
 
@@ -122,7 +120,6 @@ end
 
 function StartDestructedExitVideo(width,height)
 end
-]]
 
 //============================
 
@@ -138,22 +135,22 @@ function StopDepartureVideo(width,height)
 	StopVideo(DEPARTURE_VIDEO,width,height)
 end
 
-function StopVideo(videoType, width, height)
-    for i = 0, width - 1 do
-        for j = 0, height - 1 do
-            local panelNum = 1 + width * j + i
-            local signName
-
-            if videoType == DEPARTURE_VIDEO or videoType == DEPARTURE_DESTRUCTED_VIDEO then
-                signName = "@departure_sign_" .. panelNum
-            else
-                signName = "@arrival_sign_" .. panelNum
-            end
-
-            EntFire(signName, "Disable", "", 0)
-            EntFire(signName, "killhierarchy", "", 1.0)
-        end
-    end
+function StopVideo(videoType,width,height)
+	for i=1,width do
+		for j=1,height do
+			local panelNum = 1 + width*j + i
+			local signName
+			
+			if (videoType == DEPARTURE_VIDEO or videoType == DEPARTURE_DESTRUCTED_VIDEO ) then
+				signName = "@departure_sign_" .. panelNum
+			else
+				signName = "@arrival_sign_" .. panelNum
+			end
+			
+			EntFire(signName, "Disable", "", 0)
+			EntFire(signName, "killhierarchy", "", 1.0)
+		end
+	end
 end
 
 function StartArrivalVideo(width,height)
@@ -170,185 +167,213 @@ function StartDepartureVideo(width,height)
 //	StartVideo(DEPARTURE_VIDEO,width,height)
 end
 
-function StartDestructedArrivalVideo(width, height)
-    local playDestructed = true
-    local mapName = game.GetMap()
-
-    for index, level in ipairs(ElevatorVideos) do
-        if level.map == FIRST_CLEAN_MAP then
-            playDestructed = false
-        end
-
-        if level.map == mapName and level.arrival ~= nil then
-            if level.arrival == "" then
-                return
-            end
-
-            local videoName = "media\\"
-            if OVERRIDE_VIDEOS == 1 then
-                videoName = videoName .. "entry_emergency.bik"
-            else
-                videoName = videoName .. level.arrival
-            end
-
-            -- print("Setting arrival movie to " .. videoName)
-            EntFire("@arrival_video_master", "SetMovie", videoName, 0)
-            break
-        end
-    end
-
-    EntFire("@arrival_video_master", "Enable", "", 0.1)
-    
-    local videoType = playDestructed and ARRIVAL_DESTRUCTED_VIDEO or ARRIVAL_VIDEO
-    StartVideo(videoType, width, height)
+function StartDestructedArrivalVideo(width,height)
+	local playDestructed = true
+	local mapName = game.GetMap()
+	
+	for index, level in ipairs(ElevatorVideos) do
+		if (FIRST_CLEAN_MAP == level.map ) then
+			playDestructed = false
+		end
+		
+		if (level.map == mapName and level.arrival ) then
+			if( level.arrival == "" ) then
+				return
+			end
+				
+			local videoName = "media\\"
+			if( OVERRIDE_VIDEOS == 1 ) then
+				videoName = videoName .. "entry_emergency.bik"
+			else
+				videoName = videoName .. level.arrival
+			end
+				
+			//printl("Setting arrival movie to " + videoName )
+			EntFire("@arrival_video_master", "SetMovie", videoName, 0)
+			break
+		end
+	end
+	
+	EntFire("@arrival_video_master", "Enable", "", 0.1)
+	StartVideo(playDestructed and ARRIVAL_DESTRUCTED_VIDEO or ARRIVAL_VIDEO, width, height)
 end
 
-function StartDestructedDepartureVideo(width, height)
-    local playDestructed = true
-    local mapName = game.GetMap()
+function StartDestructedDepartureVideo(width,height)
+	local playDestructed = true
+	local mapName = game.GetMap()
+	
+	for index, level in ipairs(ElevatorVideos) do
+		if (FIRST_CLEAN_MAP == level.map ) then
+			playDestructed = false
+		end
+		
+		if (level.map == mapName and level.departure ) then
+			if( level.departure == "" ) then
+				return
+			end
 
-    for _, level in ipairs(ElevatorVideos) do
-        if FIRST_CLEAN_MAP == level.map then
-            playDestructed = false
-        end
-
-        if level.map == mapName and level.departure then
-            if level.departure == "" then
-                return
-            end
-
-            local videoName = "media/" -- use forward slash for portability
-            if OVERRIDE_VIDEOS == 1 then
-                videoName = videoName .. "exit_emergency.bik"
-            else
-                videoName = videoName .. level.departure
-            end
-
-            -- print("Setting departure movie to " .. videoName)
-            EntFire("@departure_video_master", "SetMovie", videoName, 0)
-            break
-        end
-    end
-
-    EntFire("@departure_video_master", "Enable", "", 0.1)
-
-    local videoType = playDestructed and DEPARTURE_DESTRUCTED_VIDEO or DEPARTURE_VIDEO
-    StartVideo(videoType, width, height)
+			local videoName = "media\\"
+			if( OVERRIDE_VIDEOS == 1 ) then
+				videoName = videoName .. "exit_emergency.bik"
+			else
+				videoName = videoName .. level.departure
+			end
+				
+			//printl("Setting departure movie to " + videoName )
+			EntFire("@departure_video_master", "SetMovie", videoName, 0)
+			break
+		end
+	end
+	
+	EntFire("@departure_video_master", "Enable", "", 0.1)
+	StartVideo(playDestructed and DEPARTURE_DESTRUCTED_VIDEO or DEPARTURE_VIDEO, width, height)
 end
 
-function StartVideo(videoType, width, height)
-    local videoScaleType = 0
-    local randomDestructChance = 0
+function StartVideo(videoType,width,height)
+	local videoScaleType = 0
+	local randomDestructChance = 0
+	
+	if( videoType == ARRIVAL_DESTRUCTED_VIDEO or videoType == DEPARTURE_DESTRUCTED_VIDEO ) then
+		videoScaleType = math.random(1,5)
+	else
+		videoScaleType = math.random(6,7)
+	end
+		
+	local mapName = game.GetMap()
+	for index, level in ipairs(ElevatorVideos) do
+		if (level.map == mapName) then
+			if (level.typeOverride) then
+				videoScaleType = level.typeOverride
+			end
+			
+			if (level.destructChance) then
+				randomDestructChance = level.destructChance
+			end
+		end
+	end
+	
+	for i=1,width do
+		for j=1,height do
+			local panelNum = 1 + width*j + i
+			local signName
+			
+			if (videoType == DEPARTURE_VIDEO or videoType == DEPARTURE_DESTRUCTED_VIDEO ) then
+				signName = "@departure_sign_" .. panelNum
+			else
+				signName = "@arrival_sign_" .. panelNum
+			end	
+					
+			if( randomDestructChance > math.random(0,100) ) then
+				EntFire(signName, "Kill", "", 0)
+				continue
+			end
+			
+			EntFire(signName, "SetUseCustomUVs", 1, 0)
+			
+			local uMin = (i+0.0001)/(width)
+			local uMax = (i+1.0001)/(width)
+			local vMin = (j+0.0001)/(height)
+			local vMax = (j+1.0001)/(height)
+			
+			if( videoScaleType == 0 /*full elevator*/ ) then 				
+			
+			elseif( videoScaleType == 1 /*stretch*/ ) then
+				uMin = 1.0 - (1.0-uMin)*(1.0-uMin)*(1.0-uMin)
+				uMax = 1.0 - (1.0-uMax)*(1.0-uMax)*(1.0-uMax)
 
-    if videoType == ARRIVAL_DESTRUCTED_VIDEO or videoType == DEPARTURE_DESTRUCTED_VIDEO then
-        videoScaleType = math.random(1, 5)
-    else
-        videoScaleType = math.random(6, 7)
-    end
+			elseif( videoScaleType == 2 /*Mirror*/ ) then
+				uMin = 4*(1.0-uMin)*uMin
+				uMax = 4*(1.0-uMax)*uMax					
+			
+			elseif( videoScaleType == 3 /*Ouroboros*/ ) then
+				uMin = ((i%12)+0.0001)/12
+				uMax = ((i%12)+1.0001)/12
 
-    local mapName = game.GetMap()
-    for index, level in ipairs(ElevatorVideos) do
-        if level.map == mapName then
-            if level.typeOverride ~= nil then
-                videoScaleType = level.typeOverride
-            end
-            if level.destructChance ~= nil then
-                randomDestructChance = level.destructChance
-            end
-        end
-    end
+				if( ((i)%2) == 1 ) then
+					local temp = uMin
+					uMin = uMax
+					uMax = temp
+				end
+			
+			elseif( videoScaleType == 4 /*Upside down*/ ) then
+				vMin = 0.99999
+				vMax = 0.00001
+				
+				uMin = ((i%3)+0.0001)/3
+				uMax = ((i%3)+1.0001)/3					
+			
+			elseif( videoScaleType == 5 /*Tiled*/ ) then
+				vMin = 0.00001
+				vMax = 0.99999
+				
+				uMin = ((i%3)+0.0001)/3
+				uMax = ((i%3)+1.0001)/3
 
-    for i = 0, width - 1 do
-        for j = 0, height - 1 do
-            local panelNum = 1 + width * j + i
-            local signName
+			elseif( videoScaleType == 6 /*Tiled Really Big*/ ) then
+				uMin = ((i%8)+0.0001)/8
+				uMax = ((i%8)+1.0001)/8
 
-            if videoType == DEPARTURE_VIDEO or videoType == DEPARTURE_DESTRUCTED_VIDEO then
-                signName = "@departure_sign_" .. panelNum
-            else
-                signName = "@arrival_sign_" .. panelNum
-            end
+			elseif( videoScaleType == 7 /*Tiled Big*/ ) then
+				uMin = ((i%12)+0.0001)/12
+				uMax = ((i%12)+1.0001)/12
 
-            if randomDestructChance > math.random(0, 100) then
-                EntFire(signName, "Kill", "", 0)
-            else
-                EntFire(signName, "SetUseCustomUVs", 1, 0)
+			elseif( videoScaleType == 8 /*Tiled Single*/ ) then
+				uMin = 0.0001
+				uMax = 0.9999
+				vMin = 0.0001
+				vMax = 0.9999
 
-                local uMin = (i + 0.0001) / width
-                local uMax = (i + 1.0001) / width
-                local vMin = (j + 0.0001) / height
-                local vMax = (j + 1.0001) / height
+			elseif( videoScaleType == 9 /*Tiled Double*/ ) then
+				uMin = ((i%2)+0.0001)/2
+				uMax = ((i%2)+1.0001)/2
 
-                -- Scale types
-                if videoScaleType == 1 then -- stretch
-                    uMin = 1.0 - (1.0 - uMin)^3
-                    uMax = 1.0 - (1.0 - uMax)^3
-                elseif videoScaleType == 2 then -- mirror
-                    uMin = 4 * (1.0 - uMin) * uMin
-                    uMax = 4 * (1.0 - uMax) * uMax
-                elseif videoScaleType == 3 then -- ouroboros
-                    uMin = ((i % 12) + 0.0001) / 12
-                    uMax = ((i % 12) + 1.0001) / 12
-                    if (i % 2) == 1 then
-                        uMin, uMax = uMax, uMin
-                    end
-                elseif videoScaleType == 4 then -- upside down
-                    vMin, vMax = 0.99999, 0.00001
-                    uMin = ((i % 3) + 0.0001) / 3
-                    uMax = ((i % 3) + 1.0001) / 3
-                elseif videoScaleType == 5 then -- tiled
-                    vMin, vMax = 0.00001, 0.99999
-                    uMin = ((i % 3) + 0.0001) / 3
-                    uMax = ((i % 3) + 1.0001) / 3
-                elseif videoScaleType == 6 then -- tiled really big
-                    uMin = ((i % 8) + 0.0001) / 8
-                    uMax = ((i % 8) + 1.0001) / 8
-                elseif videoScaleType == 7 then -- tiled big
-                    uMin = ((i % 12) + 0.0001) / 12
-                    uMax = ((i % 12) + 1.0001) / 12
-                elseif videoScaleType == 8 then -- tiled single
-                    uMin, uMax = 0.0001, 0.9999
-                    vMin, vMax = 0.0001, 0.9999
-                elseif videoScaleType == 9 then -- tiled double
-                    uMin = ((i % 2) + 0.0001) / 2
-                    uMax = ((i % 2) + 1.0001) / 2
-                elseif videoScaleType == 10 then -- two by two
-                    vMin, vMax = 0.00001, 0.99999
-                    uMin = ((i % 2) + 0.0001) / 2
-                    uMax = ((i % 2) + 1.0001) / 2
-                elseif videoScaleType == 11 then -- tiled off 1
-                    vMin, vMax = 0.00001, 0.99999
-                    uMin = (((i + 1) % 3) + 0.0001) / 3
-                    uMax = (((i + 1) % 3) + 1.0001) / 3
-                elseif videoScaleType == 12 then -- tiled 2x4
-                    uMin = ((i % 6) + 0.0001) / 6
-                    uMax = ((i % 6) + 1.0001) / 6
-                elseif videoScaleType == 13 then -- tiled double with two blank
-                    if (i % 4) < 2 then
-                        uMin = ((i % 2) + 0.0001) / 2
-                        uMax = ((i % 2) + 1.0001) / 2
-                    else
-                        uMin, uMax = 0.97, 0.97
-                    end
-                elseif videoScaleType == 14 then -- bluescreen
-                    if (i % 8) >= 1 and (i % 8) < 7 then
-                        uMin = (((i - 1) % 8) + 0.0001) / 6
-                        uMax = (((i - 1) % 8) + 1.0001) / 6
-                    else
-                        uMin, uMax = 0.97, 0.97
-                    end
-                end
+			elseif( videoScaleType == 10 /*Two by two*/ ) then
+				vMin = 0.00001
+				vMax = 0.99999
+				
+				uMin = ((i%2)+0.0001)/2
+				uMax = ((i%2)+1.0001)/2
 
-                -- Fire UV commands
-                EntFire(signName, "SetUMin", uMin, 0)
-                EntFire(signName, "SetUMax", uMax, 0)
-                EntFire(signName, "SetVMin", vMin, 0)
-                EntFire(signName, "SetVMax", vMax, 0)
-                EntFire(signName, "Enable", "", 0.1)
+			elseif( videoScaleType == 11 /*Tiled off 1*/ ) then
+				vMin = 0.00001
+				vMax = 0.99999
+				
+				uMin = (((i+1)%3)+0.0001)/3
+				uMax = (((i+1)%3)+1.0001)/3
 
-                -- Uncomment for debugging:
-                -- print(signName, uMin, uMax, vMin, vMax)
-            end
-        end
-    end
+			elseif( videoScaleType == 12 /*Tiled 2x4*/ ) then
+				uMin = ((i%6)+0.0001)/6
+				uMax = ((i%6)+1.0001)/6
+
+			elseif( videoScaleType == 13 /*Tiled Double - with two blank*/ ) then
+				if( ((i)%4) < 2 ) then
+					uMin = ((i%2)+0.0001)/2
+					uMax = ((i%2)+1.0001)/2
+				else
+					uMin = 0.97
+					uMax = 0.97
+				end
+
+			elseif( videoScaleType == 14 /*bluescreen*/ ) then
+				if( (i%8) >= 1 and 
+					(i%8) < 7 ) then
+					uMin = (((i-1)%8)+0.0001)/6
+					uMax = (((i-1)%8)+1.0001)/6
+				else
+					uMin = 0.97
+					uMax = 0.97
+				end
+			end
+								
+			EntFire(signName, "SetUMin", uMin, 0)
+			EntFire(signName, "SetUMax", uMax, 0)
+			EntFire(signName, "SetVMin", vMin, 0)
+			EntFire(signName, "SetVMax", vMax, 0)
+
+			EntFire(signName, "Enable", "", 0.1)
+			
+//				printl(signName + " " + uMin + " " + uMax + " " + vMin + " " + vMax )
+		end
+	end
 end
+if DBG then print("[P2] video_splitter.lua loaded") end

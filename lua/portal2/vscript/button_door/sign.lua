@@ -1,109 +1,87 @@
-print("[P2] sign.lua loaded")
-//=========================================================
-// This script is attached to the sign entity.
-// When the sign spawn it looks around for nearby doors.
-// If the doors are portal doors then the doors increment
-// their total buttons.
-//=========================================================
+--=========================================================
+-- This script is attached to the sign entity.
+-- When the sign spawn it looks around for nearby doors.
+-- If the doors are portal doors then the doors increment
+-- their total buttons.
+--=========================================================
 
-// debugging
-local DBG = 1
+-- debugging
+DBG = true
 
-// door search range
-local FIND_DOOR_RANGE = 200
+-- door search range
+FIND_DOOR_RANGE = 200
 
 
-local my_door = nil
-local is_sign = true
+my_door = nil
+is_sign = true
 
-//---------------------------------------------------------
-// OnPostSpawn
-//---------------------------------------------------------
-function OnPostSpawn(ent)
-    if not IsValid(ent) then return end
+-----------------------------------------------------------
+-- OnPostSpawn
+-----------------------------------------------------------
+function OnPostSpawn()
+	local cur_ent = nil
+	
+	repeat
+		cur_ent = ents.FindByClass( cur_ent, "func_door", self:GetOrigin(), FIND_DOOR_RANGE )
+		
+		if DBG and cur_ent ~= nil then print( self:GetName() .. " " .. cur_ent:GetName() ) end
 
-    local my_door = nil
-    local ent_pos = ent:GetPos()
+		if cur_ent ~= null and cur_ent.is_portal_door then
+			my_door = cur_ent
+			if DBG then print( self:GetName() .. " found a door " .. cur_ent:GetName() ) end
+		end
+	until (cur_ent == nil)
 
-    -- Get all doors
-    local doors = ents.FindByClass("func_door")
-
-    for _, door in ipairs(doors) do
-        if IsValid(door) and door.is_portal_door then
-            local distance = door:GetPos():Distance(ent_pos)
-            if distance <= FIND_DOOR_RANGE then
-                my_door = door
-                if DBG then
-                    print((ent:GetName() or "unnamed") .. " found a door: " .. (door:GetName() or "unnamed") .. " at distance " .. distance)
-                end
-                break -- take the first valid door within range
-            end
-        end
-    end
-
-    if not my_door then
-        if DBG then
-            print((ent:GetName() or "unnamed") .. ": Did not find a nearby door.")
-        end
-        return
-    end
-
-    -- Increment total buttons if the door supports it
-    if my_door.IncrementTotalButtons then
-        my_door:IncrementTotalButtons()
-    end
-end
-local button = ents.FindByClass("prop_floor_button")
-for _, ent in ipairs(button) do
-    OnPostSpawn(ent)
+	if my_door == nil then
+		if DBG then print( self:GetName() .. ": Did not find a nearby door." ) end
+		return
+	end
+	
+	my_door:IncrementTotalButtons()
 end
 
-//---------------------------------------------------------
-// fires when OnUser1 is triggered, which is any time the
-// button gets pressed
-//---------------------------------------------------------
-hook.Add("OnUser1Output", "ButtonPressedHook", function(ent)
-    if DBG then
-        print("attempting to open nearby door with door.nut")
-    end
+-----------------------------------------------------------
+-- fires when OnUser1 is triggered, which is any time the
+-- button gets pressed
+-----------------------------------------------------------
+function OnUser1Output()
+	if DBG then print( " attempting to open nearby door with door.nut" ) end
+	my_door:CloseButton()
+	
+	-- find nearby info_target that is_sign_target and fire its user1 output	
+	local cur_ent = nil
+				
+	-- find info_target that sign was spawned on
+	repeat
+		cur_ent = ents.FindByClass( cur_ent, "info_target", self:GetOrigin(), 8 )
 
-    if my_door and my_door.CloseButton then
-        my_door:CloseButton()
-        end
+		if cur_ent ~= nil and cur_ent.is_sign_target then
+			if DBG then print(" found info_target: " .. cur_ent ) end
+			EntFire( cur_ent:GetName(), "fireuser1" )
+		end
+	until (cur_ent == nil)
+end
+hook.Add( "OnUser1", "SignButtonPressed", OnUser1Output )
+-----------------------------------------------------------
+-- fires when OnUser2 is triggered, which is any time the
+-- button gets unpressed
+-----------------------------------------------------------
+function OnUser2Output()
+	if DBG then print( " closing door " ) end
+	my_door:OpenButton()
+	
+		-- find nearby info_target that is_sign_target and fire its user1 output	
+	local cur_ent = nil
+				
+	-- find info_target that sign was spawned on
+	repeat
+		cur_ent = ents.FindByClass( cur_ent, "info_target", self:GetOrigin(), 8 )
 
-    local cur_ent = nil
-    local info_targets = ents.FindByClass("info_target")
-
-    for _, ent in ipairs(info_targets) do
-        local distance = ent:GetPos():Distance(ent:GetPos())
-        if distance <= 8 and ent.is_sign_target then
-            if DBG then
-                print("found info_target: " .. (ent:GetName() or "unnamed"))
-            end
-            EntFire(ent:GetName(), "fireuser1")
-        end
-    end
-end)
--- Fires when the button is unpressed
-hook.Add("OnUser2Output", "ButtonUnpressedHook", function(ent)
-    if DBG then
-        print("closing door")
-    end
-
-    if my_door and my_door.OpenButton then
-        my_door:OpenButton()
-    end
-
-    local cur_ent = nil
-    local info_targets = ents.FindByClass("info_target")
-
-    for _, ent in ipairs(info_targets) do
-        local distance = ent:GetPos():Distance(ent:GetPos())
-        if distance <= 8 and ent.is_sign_target then
-            if DBG then
-                print("found info_target: " .. (ent:GetName() or "unnamed"))
-            end
-            EntFire(ent:GetName(), "fireuser2")
-        end
-    end
-end)
+		if cur_ent ~= nil and cur_ent.is_sign_target then
+			if DBG then print(" found info_target: " + cur_ent ) end
+			EntFire( cur_ent:GetName(), "fireuser2" )
+		end
+	until (cur_ent == nil)
+end
+hook.Add( "OnUser2", "SignButtonUnpressed", OnUser2Output )
+OnPostSpawn()

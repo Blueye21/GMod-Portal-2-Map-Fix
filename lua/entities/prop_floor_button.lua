@@ -43,7 +43,7 @@ function ENT:Down(activator)
     self:SetSkin(self.SkinDown)
     self:EmitSound("buttons/portal_button_down_01.wav")
     self:TriggerOutput("OnPressed", activator)
-    self:Fire("OnUser1")
+    hook.Run("OnUser1", self)
 end
 
 function ENT:Up()
@@ -55,7 +55,7 @@ function ENT:Up()
     self:SetSkin(self.SkinUp)
     self:EmitSound("buttons/portal_button_up_01.wav")
     self:TriggerOutput("OnUnPressed", self)
-    self:Fire("OnUser2")
+    hook.Run("OnUser2", self)
 end
 
 function ENT:Think()
@@ -71,17 +71,11 @@ function ENT:Think()
 
     for _, ent in ipairs(entities) do
         if ent ~= self then
-            if ent:IsPlayer() and ent:Alive() then
+            local phys = ent:GetPhysicsObject()
+            if IsValid(phys) and phys:GetMass() > 10 then
                 pressed = true
                 activator = ent
                 break
-            elseif ent:GetClass() == "prop_weighted_cube" then
-                local phys = ent:GetPhysicsObject()
-                if IsValid(phys) and phys:GetMass() > 10 then
-                    pressed = true
-                    activator = ent
-                    break
-                end
             elseif ent:GetMoveType() == MOVETYPE_STEP or ent:GetMoveType() == MOVETYPE_WALK then
                 -- Covers NPCs or walking entities
                 pressed = true

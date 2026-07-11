@@ -1,6 +1,6 @@
 print("[P2] particles.lua loaded")
 
-// Portal 1 particles
+-- Portal 1 particles
 game.AddParticles("particles/blood_impact.pcf")
 game.AddParticles("particles/portal_projectile.pcf")
 game.AddParticles("particles/portalgun.pcf")
@@ -9,7 +9,7 @@ game.AddParticles("particles/fire_01_portal.pcf")
 game.AddParticles("particles/tubes.pcf")
 game.AddParticles("particles/environment.pcf")
 
-// Portal 2 particles
+-- Portal 2 particles
 game.AddParticles("particles/portals.pcf")
 game.AddParticles("particles/portal2_coop_ping_effect.pcf")
 game.AddParticles("particles/laser_relay_effects.pcf")
@@ -22,7 +22,7 @@ game.AddParticles("particles/spark_fx.pcf")
 game.AddParticles("particles/exploding_futbol.pcf")
 game.AddParticles("!particles/portalgun.pcf")
 
-// tempcontent
+-- tempcontent
 game.AddParticles("particles/confetti.pcf")
 game.AddParticles("particles/environmental_fx.pcf")
 game.AddParticles("particles/paint_fizzler.pcf")
@@ -31,9 +31,9 @@ game.AddParticles("particles/player_paint_effects.pcf")
 game.AddParticles("particles/paint_bomb_fx.pcf")
 game.AddParticles("particles/flashlight_fx.pcf")
 
-// scenes
+-- scenes
 game.AddParticles("particles/scene_fx.pcf")
 game.AddParticles("particles/laser_relay_2.pcf")
 
-// BR
+-- BR
 game.AddParticles("particles/br_train_effects.pcf")

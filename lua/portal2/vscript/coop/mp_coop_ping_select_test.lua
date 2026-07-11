@@ -42,7 +42,8 @@ function SelectChoiceBlue(nChoice)
         end
     end
 
-    EntFire("@glados", "RunScriptCode", "GladosPlayVcd(32)", 0)
+    ---EntFire("@glados", "RunScriptCode", "GladosPlayVcd(32)", 0)
+    GladosPlayVcd(32)
     EntFire("ping_instructor_hint_A_1", "EndHint", "", 0)
     EntFire("ping_instructor_hint_B_1", "EndHint", "", 0)
 end
@@ -73,7 +74,8 @@ function SelectChoiceOrange(nChoice)
         end
     end
 
-    EntFire("@glados", "RunScriptCode", "GladosPlayVcd(34)", 0)
+    ---EntFire("@glados", "RunScriptCode", "GladosPlayVcd(34)", 0)
+    GladosPlayVcd(34)
     EntFire("ping_instructor_hint_A_2", "EndHint", "", 0)
     EntFire("ping_instructor_hint_B_2", "EndHint", "", 0)
 end

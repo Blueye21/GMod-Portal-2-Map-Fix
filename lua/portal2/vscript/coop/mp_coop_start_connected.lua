@@ -12,7 +12,7 @@ end
 function OrangeConnected()
 	if GetDeveloperLevel() >= 1 then
 		print( "=== DEV " + GetDeveloperLevel() + " ===  Orange Partner connected.  Skipping intro movie." )
-		//EntFire( "@relay_debug_start_both_connected", "Trigger", "", 1.0 )
+		--EntFire( "@relay_debug_start_both_connected", "Trigger", "", 1.0 )
 	else
 		EntFire( "@relay_start_both_connected", "Trigger", "", 1.0 )	
     end

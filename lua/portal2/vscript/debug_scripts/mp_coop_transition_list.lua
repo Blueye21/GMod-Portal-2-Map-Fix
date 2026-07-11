@@ -586,3 +586,4 @@ function GetMaxLevelsInDay(nBranch)
 
     return nMaxLevelsInDay
 end
+OnPostSpawn()

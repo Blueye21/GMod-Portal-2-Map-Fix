@@ -1,116 +1,144 @@
--- speakers --------------------------------------------------------------
-local WHEATLEY  = 0
-local GLADOS    = 1
-local TURRET    = 2
-local COMPUTER  = 3
+WHEATLEY = 0
+GLADOS = 1
 
--- runtime state ---------------------------------------------------------
-local NextSpeakTime, NextSpeakLine = -1, -1
-local NextNagTime,   NextNagLine   = -1, -1
+TURRET= 2
+COMPUTER= 3
 
--- ui helpers ------------------------------------------------------------
-local UI = {
-    [WHEATLEY] = { txt1 = "sphere_text_1",  txt2 = "sphere_text_2",  prefix = "Wheatley: " },
-    [GLADOS]   = { txt1 = "glados_text_1",  txt2 = "glados_text_2",  prefix = "GLaDOS: " },
-    [TURRET]   = { txt1 = "glados_text_1",  txt2 = "glados_text_2",  prefix = "Turret: " },
-    [COMPUTER] = { txt1 = "glados_text_1",  txt2 = "glados_text_2",  prefix = "Computer: " },
-}
+NextNagTime = -1
+NextNagLine = -1
 
--- dialogue table (populated externally) ---------------------------------
+NextSpeakTime = -1
+NextSpeakLine = -1
+
+NagLine1 = -1
+NagLine2 = -1
+
 Dialog = {}
 
-------------------------------------------------------------------------
--- internal
-------------------------------------------------------------------------
-local function clearUI()
-    for _, speaker in pairs(UI) do
-        EntFire(speaker.txt1, "SetText", "")
-        EntFire(speaker.txt1, "Display", "")
-        EntFire(speaker.txt2, "SetText", "")
-        EntFire(speaker.txt2, "Display", "")
-    end
-end
+function SpeakLine( line )
+	NextNagTime = -1
+	NextSpeakTime = -1
+	
+	EntFire( "sphere_text_1", "SetText", "", 0 )	
+	EntFire( "sphere_text_1", "Display", "", 0 )	
+	EntFire( "sphere_text_2", "SetText", "", 0 )
+	EntFire( "sphere_text_2", "Display", "", 0 )
+	EntFire( "glados_text_1", "SetText", "", 0 )	
+	EntFire( "glados_text_1", "Display", "", 0 )	
+	EntFire( "glados_text_2", "SetText", "", 0 )
+	EntFire( "glados_text_2", "Display", "", 0 )
 
-local function showLine(line)
-    clearUI()
-    local data  = Dialog[line]
-    if not data or not data.speaker then return end
-
-    local ui    = UI[data.speaker]
-    if data.one then
-        EntFire(ui.txt1, "SetText", ui.prefix .. data.one, 0)
-        EntFire(ui.txt1, "Display", "", 0)
-    end
-    if data.two then
-        EntFire(ui.txt2, "SetText", ui.prefix .. data.two, 0)
-        EntFire(ui.txt2, "Display", "", 0.75)
-    end
-end
-
-local function scheduleFollowUps(line)
-    local data = Dialog[line]
-    if not data then return end
-
-    -- next line ---------------------------------------------------------
-    if data.nextLine then
-        if data.nagDelay then
-            print("ERROR: line "..line.." has both nextLine + nagDelay – nag wins")
-            NextSpeakTime, NextSpeakLine = -1, -1
-        else
-            NextSpeakLine = data.nextLine
-            NextSpeakTime = CurTime() + (data.nextLineDelay or 5)
+	if Dialog[line].speaker and Dialog[line].speaker == GLADOS then
+		if Dialog[line].one then
+			EntFire( "glados_text_1", "SetText", "GLaDOS: " .. Dialog[line].one, 0 )
+			EntFire( "glados_text_1", "Display", "", 0 )
+			
+			EntFire( "glados_text_2", "SetText", "", 0 )
+			EntFire( "glados_text_2", "Display", "", 0 )
         end
-    else
-        NextSpeakTime, NextSpeakLine = -1, -1
+		if Dialog[line].two then
+			EntFire( "glados_text_2", "SetText", "GLaDOS: " .. Dialog[line].two, 0 )
+			EntFire( "glados_text_2", "Display", "", 0.75 )		
+        end
+	elseif Dialog[line].speaker and Dialog[line].speaker == WHEATLEY then
+		if Dialog[line].one then
+			EntFire( "sphere_text_1", "SetText", "Wheatley: " .. Dialog[line].one, 0 )
+			EntFire( "sphere_text_1", "Display", "", 0 )
+			
+			EntFire( "sphere_text_2", "SetText", "", 0 )
+			EntFire( "sphere_text_2", "Display", "", 0 )
+        end
+		if Dialog[line].two then
+			EntFire( "sphere_text_2", "SetText", "Wheatley: " .. Dialog[line].two, 0 )
+			EntFire( "sphere_text_2", "Display", "", 0.75 )		
+        end
+	
+	elseif Dialog[line].speaker and Dialog[line].speaker == TURRET then
+		if Dialog[line].one then
+			EntFire( "glados_text_1", "SetText", "Turret: " .. Dialog[line].one, 0 )
+			EntFire( "glados_text_1", "Display", "", 0 )
+			
+			EntFire( "glados_text_2", "SetText", "", 0 )
+			EntFire( "glados_text_2", "Display", "", 0 )
+        end
+		if Dialog[line].two then
+			EntFire( "glados_text_2", "SetText", "Turret: " .. Dialog[line].two, 0 )
+			EntFire( "glados_text_2", "Display", "", 0.75 )		
+        end
+	elseif Dialog[line].speaker and Dialog[line].speaker == COMPUTER then
+		if Dialog[line].one then
+			EntFire( "glados_text_1", "SetText", "Computer: " .. Dialog[line].one, 0 )
+			EntFire( "glados_text_1", "Display", "", 0 )
+			
+			EntFire( "glados_text_2", "SetText", "", 0 )
+			EntFire( "glados_text_2", "Display", "", 0 )
+        end
+		if Dialog[line].two then
+			EntFire( "glados_text_2", "SetText", "Computer: " .. Dialog[line].two, 0 )
+			EntFire( "glados_text_2", "Display", "", 0.75 )		
+        end
+	end
+	
+		
+	if Dialog[line].nextLine then
+		if Dialog[line].nextLineDelay then
+			NextSpeakTime = CurTime() + Dialog[line].nextLineDelay
+		else
+			NextSpeakTime = CurTime() + 5
+        end
+		
+		NextSpeakLine = Dialog[line].nextLine
+	else
+		NextSpeakTime = -1
+		NextSpeakLine = -1
     end
+	
+	if Dialog[line].nagDelay then
+		if Dialog[line].nextLine then
+			print("Hey Dummy! How are you going to nag and speak another line? Well - I'm waiting?!?")
+			print("Hey Dummy! How are you going to nag and speak another line? Well - I'm waiting?!?")
+			print("Hey Dummy! How are you going to nag and speak another line? Well - I'm waiting?!?")
+			print("Hey Dummy! How are you going to nag and speak another line? Well - I'm waiting?!?")
+			print("Hey Dummy! How are you going to nag and speak another line? Well - I'm waiting?!?")
+			
+			NextSpeakTime = -1
+			NextSpeakLine = -1
+        end
 
-    -- nag ---------------------------------------------------------------
-    if data.nagDelay then
-        NextNagLine = line
-        NextNagTime = CurTime() + data.nagDelay
-    else
-        NextNagTime, NextNagLine = -1, -1
+		NextNagLine = line
+		NextNagTime = CurTime() + Dialog[line].nagDelay
+	end
+	
+	if Dialog[line].relay then
+		EntFire( Dialog[line].relay, "Trigger", "", Dialog[line].relayDelay )
     end
-
-    -- relay -------------------------------------------------------------
-    if data.relay then
-        EntFire(data.relay, "Trigger", "", data.relayDelay or 0)
-    end
-end
-
-------------------------------------------------------------------------
--- public  (identical signatures)
-------------------------------------------------------------------------
-function SpeakLine(line)
-    NextNagTime, NextSpeakTime = -1, -1
-    showLine(line)
-    scheduleFollowUps(line)
 end
 
 function Think()
-    local t = CurTime()
-    if NextSpeakTime > 0 and t > NextSpeakTime and NextSpeakLine > 0 then
-        SpeakLine(NextSpeakLine)
-    elseif NextNagTime > 0 and t > NextNagTime and NextNagLine > 0 then
-        SpeakLine(NextNagLine)
-    end
+	if NextSpeakTime > -1 and NextSpeakLine > -1 and CurTime() > NextSpeakTime then
+		SpeakLine( NextSpeakLine ) -- this might set new next lines to speak.
+	elseif NextNagTime > -1 and NextNagLine > -1 and CurTime() > NextNagTime then
+		SpeakLine( NextNagLine )
+	end
 end
 
+hook.Add("Think", "SphereChoreoIncludeThink", Think)
+
 function NextLine()
-    if NextSpeakLine > 0 then
-        SpeakLine(NextSpeakLine)
-    elseif NextNagLine > 0 then
-        SpeakLine(NextNagLine)
+	if NextSpeakLine > -1 then
+		SpeakLine( NextSpeakLine )	
+	elseif NextNagLine > -1 then
+		SpeakLine( NextNagLine )
     end
 end
 
 function ShowHelp()
-    print("speaker        – 0=Wheatley, 1=GLaDOS, 2=Turret, 3=Computer")
-    print("one            – top line text")
-    print("two            – second line text")
-    print("nextLine       – line index to auto-play")
-    print("nextLineDelay  – seconds until nextLine (default 5)")
-    print("relay          – relay to trigger")
-    print("relayDelay     – seconds before relay fires")
-    print("nagDelay       – seconds until this line repeats")
+	print("speaker -  who is speaking, GLADOS or WHEATLEY")
+	print("one -      text displayed at the center of the screen")
+	print("two -      text displayed slightly below one")
+	print("nextLine - Line to play immediately after this one completes")
+	print("nextLineDelay - how long to wait until nextline is played")
+	print("relay -	   relay to fire when this line is spoken")
+	print("relayDelay - how to wait before the relay fires")
+	print("nagDelay - If this line is a nag how long until it repeats")
 end

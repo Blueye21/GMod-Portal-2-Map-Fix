@@ -94,6 +94,7 @@ summer_sale_cube_died = false
 --EstimateLength()
 
 --DBG stuff
+DBG = true	--Set true to enable DBG block during think function
 DBGInterval = 10.00
 
 lastthink = CurTime()
@@ -135,8 +136,8 @@ sceneDingOff = CreateSceneEntity("scenes/npc/glados_manual/ding_off.vcd")
 
 
 
-include("portal2/vscript/choreo/glados_coop_scenetable_include.lua")
---include("choreo/glados_coop_scenetable_include_manual.lua")
+include( "portal2/vscript/choreo/glados_coop_scenetable_include.lua")
+include( "portal2/vscript/choreo/glados_coop_scenetable_include_manual.lua")
 
 --Co-op sepcific stuff
 	coopFirstPlayerToGetGun = 0 --Saves id of first player to pick up portal gun
@@ -184,7 +185,7 @@ SPEED_RUN_THRESHOLD = 60								-- Number of seconds a run must be finished in t
 SPEED_RUN_SECTION = 2									-- Section the achievement applies to.
 mp_coop_speed_run_time = 0
 
-function printlDBG(arg)
+function printDBG(arg)
 	if DBG then
 		print(arg)
 	end
@@ -195,10 +196,10 @@ end
 function OnPostSpawn()
 		local i = 0
 		--assign a unique id to each scene entity (uses SetTeam because that's the only thing available)
-		for val, _ in ipairs(SceneTable) do
+		for _, val in ipairs(SceneTable) do
 			i = i + 1
-			val.vcd.ValidateScriptScope()
-			val.vcd.SetTeam(i)
+			val.vcd:ValidateScriptScope()
+			val.vcd:SetTeam(i)
 			val.index = i
 		end
 		--Initialize the deferred scene queue
@@ -206,66 +207,61 @@ function OnPostSpawn()
 				
 		--Map specific Spawn stuff
 		if curMapName == "sp_a1_wakeup" then
-			EntFire("@glados","runscriptcode","sp_a1_wakeup_start_map()",1.0)
+			--!!EntFire("@glados","runscriptcode","sp_a1_wakeup_start_map()",1.0)
+			timer.Simple(1, sp_a1_wakeup_start_map)
 		end
-	end
-
+end
+--[[
 
 
 --Passed the unique team id associated with a scene entity defined in SceneTable, this function returns the correct SceneTable index for that entry
 --ex: SceneTableInst = SceneTable[findIndex(team)]
 function findIndex(team)
-    for idx, val in ipairs(SceneTable) do
-        if val.index == team then
-            return idx
-        end
-    end
-
-    return nil
+		local idx, val
+		for idx, val in ipairs(SceneTable) do
+			if val.index == team then
+				return idx
+			end
+		end
+		return nil
 end
 
--- Passed the unique team id associated with a scene entity defined in SceneTable,
--- this function returns the scene instance that originally fired it.
--- If multiple scene instances fire the same VCD, this isn't reliable.
+--Passed the unique team id associated with a scene entity defined in SceneTable, this function returns the scene instance that originally fired it.
+--Unfortunately, if multiple scene instances fire the same vcd, this isn't reliable. Hopefully we can either a) fix that 
+--or b) not have multiple scene instances use the same vcd (which is currently the case as of 07/19/2010 - efw)
 function FindSceneInstanceByTeam(team)
-    local inst = nil
+{
+	local idx, val
+	local idx2, val2
+	local inst = nil
+	foreach (idx, val in scenequeue)
+	{
+		foreach (idx2, val2 in val.waitFiredVcds)
+		{
+			if (val2 == team)
+			{
+				inst = val
+				break
+			}
+		}
+		if (inst ~= nil)
+			break
+	}
+	return inst
+}
 
-    for _, scene in ipairs(scenequeue) do
-        if scene.waitFiredVcds then
-            for _, vcdTeam in ipairs(scene.waitFiredVcds) do
-                if vcdTeam == team then
-                    inst = scene
-                    break
-                end
-            end
-        end
-
-        if inst ~= nil then
-            break
-        end
-    end
-
-    return inst
-end
-
+]]
 function SceneCanceled()
-    -- GLua method call should use ':' instead of '.'
-    local team = owninginstance:GetTeam()
-
-    printlDBG(
-        "========SCENE CANCELLED - CALLING ENTITY: " ..
-        tostring(findIndex(team))
-    )
+	printDBG("========SCENE CANCELLED - CALLING ENTITY: "..findIndex(owninginstance.GetTeam()))
 end
-
+--[[
 --If a vcd is tagged to "exit early" (by setting postdelay < 0), this event fires rather than PlayNextScene() when the vcd finishes.
 --SkipOnCompletion() has all the functionality of PlayNextScene(), except it doesn't actually play the next scene, because the next scene presumably
 --already started playing when the vcd exited early.
 --SkipOnCompletion does, however, evaluate the vcd's SceneTable entry to see if any EntFires need to happen.
---[[
 function SkipOnCompletion()
 {
-	printlDBG("========SKIPONCOMPLETION CALLING ENTITY: "+findIndex(owninginstance.GetTeam())+" : TIME "+CurTime())
+	printDBG("========SKIPONCOMPLETION CALLING ENTITY: "+findIndex(owninginstance.GetTeam())+" : TIME "+CurTime())
 	local team = owninginstance.GetTeam()
 	local inst = FindSceneInstanceByTeam(team)
 	if (inst ~= nil)
@@ -282,7 +278,7 @@ function SkipOnCompletion()
 				{
 					if (!("fireatstart" in val))
 					{
-						printlDBG(">>>>>>ENT FIRE AT (SKIPCOMPLETION) END: "+val.entity+":"+val.input)
+						printDBG(">>>>>>ENT FIRE AT (SKIPCOMPLETION) END: "+val.entity+":"+val.input)
 						EntFire(val.entity,val.input,val.parameter,val.delay)
 					}
 				}
@@ -291,9 +287,9 @@ function SkipOnCompletion()
 	}
 }	
 
-
+]]
 function PlayNextScene()
-	printlDBG("========PLAYNEXTSCENE CALLING ENTITY: "..findIndex(owninginstance.GetTeam()).." : TIME "..CurTime())
+	printDBG("========PLAYNEXTSCENE CALLING ENTITY: "..findIndex(owninginstance.GetTeam()).." : TIME "..CurTime())
 	local team = owninginstance.GetTeam()
 	local inst = FindSceneInstanceByTeam(team)
 	if inst ~= nil then
@@ -305,86 +301,86 @@ end
 
 
 
-function PlayNextSceneInternal(inst = nil)
+function PlayNextSceneInternal(inst)
 --inst = just completed scene
-{
+	inst = inst or nil
 	local i = 0
 	local tmp = 0
-	--printlDBG("===================Scene Done!" + i)
+	--printDBG("===================Scene Done!" + i)
 	
 	--Set the ducking back to the default value
-	SendToConsole( "snd_ducktovolume 0.55" )
+	--RunConsoleCommand( "snd_ducktovolume 0.55" )
 	
 	--Are there any "fire at the end" triggers associated with the just completed?
-	if (inst.waitVcdCurrent ~= nil)
-	{
-		if ("fires" in SceneTable[inst.waitVcdCurrent])
-		{
+	if inst.waitVcdCurrent ~= nil then
+		if SceneTable[inst.waitVcdCurrent].fires then
 			local idx, val
-			foreach (idx, val in SceneTable[inst.waitVcdCurrent].fires)
-			{
-				if (!("fireatstart" in val))
-				{
-					printlDBG(">>>>>>ENT FIRE AT END: "+val.entity+":"+val.input)
+			for idx, val in ipairs(SceneTable[inst.waitVcdCurrent].fires) do
+				if not val.fireatstart then
+					printDBG(">>>>>>ENT FIRE AT END: "..val.entity..":"..val.input)
 					EntFire(val.entity,val.input,val.parameter,val.delay)
-				}
-			}
-		}
-	}
+				end
+			end
+		end
+	end
 	--Is there another vcd in the scene chain?
-	if (inst.waitNext ~= nil)
-	{
-		printlDBG("=====There is a next scene: "+inst.waitNext)
-		if (inst.waitLength == nil)
-		{
-			i+=1
-			printlDBG("===================Ready to play:" + i)
+	if inst.waitNext ~= nil then
+		printDBG("=====There is a next scene: "..inst.waitNext)
+		if inst.waitLength == nil then
+			i = i + 1
+			printDBG("===================Ready to play:" .. i)
 			GladosPlayVcd(inst)
- 		}	
 		else
-		{
 			inst.waitStartTime = CurTime()
 			inst.waiting = 1
-		}	
-	}
+		end
 	else
-	{
-		printlDBG("=====No next scene!")
+		printDBG("=====No next scene!")
 		--Remove the instance from the scene list
 		scenequeue_DeleteScene(inst.index)
 		--The current scene is over. Check to see if there are any queued scenes.
-		if (QueueCheck())
+		if QueueCheck() then
 			return
+		end
 
 		--Do the ding if nothing's queued and the previous scene requires a ding
-		if (!inst.waitNoDingOff)
+		if not inst.waitNoDingOff then
 			EntFireByHandle( sceneDingOff, "Start", "", 0.1, nil, nil )
-	}
-}
-
+		end
+	end
+end
+--[[
 
 --Think function
 function GladosThink()
+{
+
 	--Put DBG stuff here!
-	if DBG then
-		if CurTime()-lastthink>DBGInterval then
-			printlDBG("===================GladosThink-> " .. lastthink)
+	if (DBG)
+	{
+		if (CurTime()-lastthink>DBGInterval)
+		{
+			printDBG("===================GladosThink-> " + lastthink)
 			lastthink = CurTime()
 			QueueDBG()
-		end
-	end
+		}
+	}	
 	
 
 
 	local idx, val
-	for idx,val in ipairs(scenequeue) do
+	foreach (idx,val in scenequeue)
+	{
 		--Check if current vcd is scheduled to exit early
-		if val.waitExitingEarly then
-			if CurTime()-val.waitExitingEarlyStartTime >= val.waitExitingEarlyThreshold then
+		if (val.waitExitingEarly)
+		{
+			if (CurTime()-val.waitExitingEarlyStartTime >= val.waitExitingEarlyThreshold)
+			{
 				local team
 				val.waitExitingEarly=false
 				local curscene = characterCurscene(val.currentCharacter)
-				if curscene~=nil then
+				if (curscene~=nil)
+				{
 					curscene.ValidateScriptScope()
 					curscene.GetScriptScope().SkipOnCompletion = SkipOnCompletion.bindenv(this)
 					curscene.DisconnectOutput("OnCompletion", "PlayNextScene")
@@ -392,58 +388,62 @@ function GladosThink()
 					curscene.ConnectOutput( "OnCompletion", "SkipOnCompletion" )
 					team = curscene.GetTeam()
 					val.waitVcdCurrent = findIndex(team)
-				end
-				printlDBG("====EXITING EARLY!!!!!!!")
+				}
+				printDBG("====EXITING EARLY!!!!!!!")
 				PlayNextSceneInternal(val)
 				return
-			end
-		end
-	end
+			}
+		}
+	}
 	
 	local tmp
 	--Check the deferred scene queue
 	tmp = QueueThink()
 	--Is a queued scene ready to fire?
-	if tmp ~= nil then
-			printlDBG("===========Forcing a queued Scene!!!~========")
+	if (tmp ~= nil)
+	{
+			printDBG("===========Forcing a queued Scene!!!~========")
 			GladosPlayVcd(tmp,true)
 			return
-	end
+	}
 
-	for idx,val in ipairs(scenequeue)
+	foreach (idx,val in scenequeue)
+	{
 		--Are we waiting to play another vcd?
-		if val.waiting == 1 then
-			if CurTime()-val.waitStartTime >= val.waitLength then
+		if (val.waiting == 1)
+		{
+			if (CurTime()-val.waitStartTime >= val.waitLength)
+			{
 				val.waiting = 0
 				GladosPlayVcd(val)
-			end
-		end
-	end
+			}
+		}
+	}
 	
-	if curMapName=="mp_coop_start" and  BluePingStartDone==1 then
+	if (curMapName=="mp_coop_start" &&  BluePingStartDone==1){
 		local curTime=CurTime()
 		local BluePingStartInterval = curTime - BluePingStartTimer
-		if BluePingStartInterval>20 then
+		if (BluePingStartInterval>20){
 			BluePingStartTimer=CurTime()
 			GladosPlayVcd(1331)
-		end
-	end
-	if curMapName=="mp_coop_start" and  OrangePingStartDone==1 then
+		}
+	}
+	if (curMapName=="mp_coop_start" &&  OrangePingStartDone==1){
 		local curTime=CurTime()
 		local OrangePingStartInterval = curTime - OrangePingStartTimer
-		if OrangePingStartInterval>20 then
+		if (OrangePingStartInterval>20){
 			OrangePingStartTimer=CurTime()
 			GladosPlayVcd(1332)
-		end	
-	end
+		}		
+	}
 
-	if GladosInsideTauntCam == 1 then
+	if (GladosInsideTauntCam == 1){
 		local curTime=CurTime()
 		local tauntreactionfired = 0
 		local GladosInsideTauntCamInterval = curTime-GladosInsideTauntCamLastInterval
-		printlDBG("=================================== CAM INTERVAL:"+GladosInsideTauntCamCounter+" - "+GladosInsideTauntCamInterval+" - "+GladosInsideTauntCam)
-		if GladosInsideTauntCamInterval>8 or GladosInsideTauntCamCounter==1 then
-			if (BlueTauntCam==1	and OrangeTauntCam==0){
+		printDBG("=================================== CAM INTERVAL:"+GladosInsideTauntCamCounter+" - "+GladosInsideTauntCamInterval+" - "+GladosInsideTauntCam)
+		if (GladosInsideTauntCamInterval>8 || GladosInsideTauntCamCounter==1){
+			if (BlueTauntCam==1	&& OrangeTauntCam==0){
 				if (curTime-BlueTauntFinaleInterval<5){
 					tauntreactionfired = 1
 					GladosInsideTauntCamLastInterval=CurTime()-6
@@ -451,7 +451,7 @@ function GladosThink()
 				}
 			}
 
-			if (BlueTauntCam==0	and OrangeTauntCam==1){
+			if (BlueTauntCam==0	&& OrangeTauntCam==1){
 				if (curTime-OrangeTauntFinaleInterval<5){
 					tauntreactionfired = 1
 					GladosInsideTauntCamLastInterval=CurTime()-6
@@ -549,370 +549,325 @@ function GladosEndingTauntCam_End(){
 	GladosInsideTauntCam =0 
 }
 
-
+]]
 --Play a vcd from the SceneTable, plus set up next line (if any).
 --This is the function that should be used to start a scene from inside a map.
-function GladosPlayVcd(arg,IgnoreQueue = nil, caller = nil)
---arg==instance	-> Continue playing scene defined by scene class instance arg
---arg==integer	-> Start playing new scene (scene being a chain of vcds) from SceneTable[SceneTableLookup[arg]]
---arg==string		-> Start playing new scene (scene being a chain of vcds) from SceneTable[arg]
---arg==nil			-> Continue playing current scene with next vcd in current chain
---IgnoreQueue		-> true == don't check for queue status (this is used to force a queued vcd to play)
---caller				-> If passed as an entity, the vcd will have its "target1" set to caller.GetName()
---[[
-{
-	printlDBG("=========GladosPlayVcd Called~=========")	
-	local dingon = false
-	local inst
-	local fromqueue = firedfromqueue
-	firedfromqueue = false
-	if (curMapName=="mp_coop_start" ){	
-		if (arg==30){	
-			BluePingStartDone=1
-			BluePingStartTimer=CurTime()+15
-		}
-		if (arg==32){	
-			BluePingStartDone=2
-			OrangePingStartDone=1
-			OrangePingStartTimer=CurTime()+25
-		}
-		if (arg==34){	
-			OrangePingStartDone=2
-		}
-	}
-	
-	
-	if (typeof arg == "instance")
-	{
-		inst = arg
-		arg=inst.waitNext
-	}
-	else
-	{
-		--If this is a call from the map, look up the integer arg in the scene lookup table.
-		--We need to do this because hammer/the engine can't pass a squirrel script a string, just an integer.
-		--In other words, from a map, @glados.GladosPlayVcd("MyVcd") crashes the game. GladosPlayVcd(16) doesn't.
-		local sceneStart = 0
-		if (typeof arg == "integer")
-		{
-			sceneStart = arg
-			printlDBG("{}{}{}{}{}{}{}{}{}GladosPlayVcd: "+arg)	
-			arg = SceneTableLookup[arg]
-		}
-		else
-		{
-			sceneStart = 0
-		}
-		--if SkipIfBusy is present & we're already playing a scene, skip this new scene
-		if ("skipifbusy" in SceneTable[arg])
-		{
-		  if (!("char" in SceneTable[arg])){
-		  	SceneTable[arg].char = "glados" 
-		  }
+function GladosPlayVcd(arg, IgnoreQueue, caller)
+    IgnoreQueue = IgnoreQueue or nil
+    caller = caller or nil
+    --arg==instance -> Continue playing scene defined by scene class instance arg
+    --arg==integer  -> Start playing new scene (scene being a chain of vcds) from SceneTable[SceneTableLookup[arg]]
+    --arg==string   -> Start playing new scene (scene being a chain of vcds) from SceneTable[arg]
+    --arg==nil      -> Continue playing current scene with next vcd in current chain
+    --IgnoreQueue   -> true == don't check for queue status (this is used to force a queued vcd to play)
+    --caller        -> If passed as an entity, the vcd will have its "target1" set to caller.GetName()
 
-			if (characterCurscene(SceneTable[arg].char)~=nil)
-			{
-				return
-			}
-		}
-		--if queue is present & we're already playing a scene, add scene to queue
- 		if ("queue" in SceneTable[arg])
-	 	{
-	 		if (IgnoreQueue == nil)
-			{
-				--queue if a specific character is talking 
-		 		if ("queuecharacter" in SceneTable[arg])
-		 		{
-					if (characterCurscene(SceneTable[arg].queuecharacter)~=nil)
-					{
-				 		QueueAdd(arg)
-			 			return
-			 		}
-				}
-				--otherwise, queue if the character associated with the vcd is talking
-				else
-				{
-					if (!("char" in SceneTable[arg])){
-	  				SceneTable[arg].char = "glados" 
-			  	}
+    printDBG("=========GladosPlayVcd Called~=========")
+    local dingon = false
+    local inst
+    local fromqueue = firedfromqueue
+    firedfromqueue = false
 
-					if (characterCurscene(SceneTable[arg].char)~=nil)
-					{
-				 		QueueAdd(arg)
-			 			return
-			 		}
-			 	}	
-			}		
-	  }
-	  if (!("char" in SceneTable[arg])){
-	  	SceneTable[arg].char = "glados" 
-	  }
- 		if (scenequeue_AddScene(arg,SceneTable[arg].char) == nil)
-			return
-		inst = scenequeue[arg]
-		inst.waitSceneStart = sceneStart
-		
-		if ("idle" in SceneTable[arg])
-		{
-			nags_init(inst,arg)
-		}
+    if curMapName == "mp_coop_start" then
+        if arg == 30 then
+            BluePingStartDone = 1
+            BluePingStartTimer = CurTime() + 15
+        end
+        if arg == 32 then
+            BluePingStartDone = 2
+            OrangePingStartDone = 1
+            OrangePingStartTimer = CurTime() + 25
+        end
+        if arg == 34 then
+            OrangePingStartDone = 2
+        end
+    end
 
-		--This is a new dialog block, so turn off special processing
-		dingon=true
-		pitchShifting = false
-		--startBlock = CurTime()
-		if ("noDingOff" in SceneTable[arg])
-			inst.waitNoDingOff = true
-		else
-			inst.waitNoDingOff = false	
-		if ("noDingOn" in SceneTable[arg])
-			inst.waitNoDingOn = true
-		else
-			inst.waitNoDingOn = false	
-	}
-	
-	--If this scene is a nag/idle cycle, grab the next line off the stack
-	if (inst.isNag)
-	{
-		--If we're not in a vcd chain, grab the next vcd from the randomized pool
-		if (!inst.naginchain)
-		{
-			arg = nags_fetch(inst)
-		}	
-		--if nothing fetched (because the nag has used all the lines and isn't marked as "repeat"), remove this scene
-		if (arg == nil)
-		{
-			scenequeue_DeleteScene(inst.index)
-			return
-		}
-	}
-	
-	--Set ducking volume correctly for booming glados audio
-	SendToConsole( "snd_ducktovolume 0.2" )
-	
-  --SetDucking( "announcerVOLayer", "announcerVO", 0.01 ) 
-  --SetDucking( "gladosVOLayer", "gladosVO", 0.1 ) 
-
-	local preDelay = 0.00
-	preDelay = EvaluateTimeKey("predelay", SceneTable[arg])
-	if (fromqueue and "queuepredelay" in SceneTable[arg])
-	{
-		preDelay = EvaluateTimeKey("queuepredelay", SceneTable[arg])
-	}
-		
-	if ( arg ~= nil )
-	{
-
-		local ltalkover
-		ltalkover =  "talkover" in SceneTable[arg]
-
-		--Cancel any vcd that's already playing
-		if (!ltalkover)
-		{
-			GladosAllCharactersStopScene()
-		}	
-		else
-		{
-			--characters can't currently talk over themselves
-	  	if (!("char" in SceneTable[arg])){
-		  	SceneTable[arg].char = "glados" 
-		  }
-			GladosCharacterStopScene(SceneTable[arg].char)
-		}
-		
-		--Play the initial ding (unless the scene specifically requests no ding)
-		if (dingon and !inst.waitNoDingOn)
-			EntFireByHandle( sceneDingOn, "Start", "", preDelay, nil, nil )
-
-		
-		--Start the new vcd	
-		printlDBG("===================Playing:" + arg)
-	  if (!("char" in SceneTable[arg])){
-	  	SceneTable[arg].char = "glados" 
-	  }
-
-		inst.currentCharacter = SceneTable[arg].char
-		
-		--Bind the OnCompletion Event
-		SceneTable[arg].vcd.ValidateScriptScope()
-		SceneTable[arg].vcd.GetScriptScope().PlayNextScene = PlayNextScene.bindenv(this)
-		SceneTable[arg].vcd.DisconnectOutput( "OnCompletion", "PlayNextScene" )
-		SceneTable[arg].vcd.ConnectOutput( "OnCompletion", "PlayNextScene" )
-		SceneTable[arg].vcd.ConnectOutput( "OnCanceled", "SceneCanceled" )
-		
-		--Set the target1 if necessary
-		if (caller ~= nil)
-		{
-			if (typeof caller == "string")
-			{
-				EntFireByHandle( SceneTable[arg].vcd, "SetTarget1", caller, 0, nil, nil )
-				printlDBG("++++++++++++SETTING TARGET: "+caller)
-			}	
+    if type(arg) == "table" then
+        inst = arg
+        arg = inst.waitNext
+    else
+        --If this is a call from the map, look up the integer arg in the scene lookup table.
+        --We need to do this because hammer/the engine can't pass a squirrel script a string, just an integer.
+        --In other words, from a map, @glados.GladosPlayVcd("MyVcd") crashes the game. GladosPlayVcd(16) doesn't.
+        local sceneStart = 0
+        if type(arg) == "number" then
+            sceneStart = arg
+            printDBG("{}{}{}{}{}{}{}{}{}GladosPlayVcd: " .. arg)
+			if SceneTableLookup[arg] then
+            	arg = SceneTableLookup[arg]
 			else
-			{
-				EntFireByHandle( SceneTable[arg].vcd, "SetTarget1", caller.GetName(), 0, nil, nil )
-			}
-		}	
-		if ("settarget1" in SceneTable[arg])
-		{
-			EntFireByHandle( SceneTable[arg].vcd, "SetTarget1", SceneTable[arg].settarget1 , 0, nil, nil )
-		}
+				if not SceneTable[arg] then
+					print("Cannot find the scene!!!")
+					return
+				end
+			end
+        else
+            sceneStart = 0
+        end
 
-		inst.waitVcdTeam = SceneTable[arg].index
-		inst.waitVcdCurrent = arg
-		
-		inst.addFiredVcd(SceneTable[arg].index)
-				
-		if (dingon and !inst.waitNoDingOn)
-			EntFireByHandle( SceneTable[arg].vcd, "Start", "", preDelay+0.18, nil, nil )
-		else	
-			EntFireByHandle( SceneTable[arg].vcd, "Start", "", preDelay, nil, nil )
+        --if SkipIfBusy is present & we're already playing a scene, skip this new scene
+        if SceneTable[arg].skipifbusy then
+            if not SceneTable[arg].char then
+                SceneTable[arg].char = "glados"
+            end
 
-		
-		--Does this vcd have a "fire into entities" array?
-		if ("fires" in SceneTable[arg])
-		{
-			local idx, val
-			foreach (idx, val in SceneTable[arg].fires)
-			{
-				if ("fireatstart" in val)
-				{
-					printlDBG(">>>>>>ENT FIRE AT START: "+val.entity+":"+val.input)
-					EntFire(val.entity,val.input,val.parameter, val.delay)
-				}
-			}
-		}
+            if characterCurscene(SceneTable[arg].char) ~= nil then
+                return
+            end
+        end
 
-		if ("special" in SceneTable[arg])
-		{
-			switch (SceneTable[arg].special)
-			{
-				case 1: --Block-wide pitch shifting
-					pitchShifting = true
-					break
-				case 2: --Speed up
-					if (pitchOverride == nil)	
-						EntFireByHandle( SceneTable[arg].vcd, "PitchShift", "2.5", 0, nil, nil )
-					break
-				case 3: --Slow down a bit	
-					EntFireByHandle( SceneTable[arg].vcd, "PitchShift", "0.9", 0, nil, nil )
-					break
-			}
-		}
-		if (pitchOverride~=nil)
-			EntFireByHandle( SceneTable[arg].vcd, "PitchShift", pitchOverride.tostring(), 0, nil, nil )
+        --if queue is present & we're already playing a scene, add scene to queue
+        if SceneTable[arg].queue then
+            if IgnoreQueue == nil then
+                --queue if a specific character is talking
+                if SceneTable[arg].queuecharacter then
+                    if characterCurscene(SceneTable[arg].queuecharacter) ~= nil then
+                        QueueAdd(arg)
+                        return
+                    end
+                --otherwise, queue if the character associated with the vcd is talking
+                else
+                    if not SceneTable[arg].char then
+                        SceneTable[arg].char = "glados"
+                    end
 
-    --Setup next line (if there is one)
-    if (SceneTable[arg].next ~= nil or inst.isNag)
-    {
-    	local pdelay = EvaluateTimeKey("postdelay",SceneTable[arg])
-    	
-    	--if this is a nag, use min/max defined in the first entry in the scene
-    	if (inst.isNag)
-    	{
-    		pdelay = RandomFloat(inst.nagminsecs,inst.nagmaxsecs)
-    	}
+                    if characterCurscene(SceneTable[arg].char) ~= nil then
+                        QueueAdd(arg)
+                        return
+                    end
+                end
+            end
+        end
 
-    	if (pdelay<0.00)
-    	{
-    		if (inst.isNag)
-    			--If the "next" key ~= nil, it means we're in a vcd chain
-    			if (SceneTable[arg].next ~= nil)
-    			{
-    				inst.waitNext = SceneTable[arg].next
-    				inst.naginchain = true
-    			}
-    			else
-    			{
-    				--Otherwise, just slug in the same index (any non-nil value would work here, however)
-						inst.waitNext = arg
-    				inst.naginchain = false
-					}
-    		else
-					inst.waitNext = SceneTable[arg].next 
- 				inst.waitExitingEarly=true
- 				inst.waitLength=nil
- 				inst.waitExitingEarlyStartTime=CurTime()
-				--If we're in a nag vcd chain, use the vcds postdelay rather than the nag-wide delay
-				--This is because vcd chains generally need to be explicitly timed at the chain level
-				--since the vcds are grouped together as a block
- 				if (inst.naginchain)
- 					pdelay = EvaluateTimeKey("postdelay",SceneTable[arg])
- 				inst.waitExitingEarlyThreshold=pdelay*-1
-			}
-			else
-			{
- 				inst.waitExitingEarly=false
-    		if (inst.isNag)
-    		{
-    			--If the "next" key ~= nil, it means we're in a vcd chain
-    			if (SceneTable[arg].next ~= nil)
-    			{
-    				inst.waitNext = SceneTable[arg].next
-    				inst.naginchain = true
-    			}
-    			else
-    			{
-    				--Otherwise, just slug in the same index (any non-nil value would work here, however)
-						inst.waitNext = arg
-    				inst.naginchain = false
-					}
-				}
-    		else
-    		{
-					inst.waitNext = SceneTable[arg].next 
-				}	
-				--If we're in a nag vcd chain, use the vcds postdelay rather than the nag-wide delay
-				--This is because vcd chains generally need to be explicitly timed at the chain level
-				--since the vcds are grouped together as a block
- 				if (inst.naginchain)
- 					pdelay = EvaluateTimeKey("postdelay",SceneTable[arg])
-			}	
-   		inst.waitLength = pdelay
-    }	
-		else
-		{
-			inst.waitNext = nil
-			printlDBG("===================SCENE END")
-		}
-	}	
-}
+        if not SceneTable[arg].char then
+            SceneTable[arg].char = "glados"
+        end
+
+        if scenequeue_AddScene(arg, SceneTable[arg].char) == nil then
+            return
+        end
+        inst = scenequeue[arg]
+        inst.waitSceneStart = sceneStart
+
+        if SceneTable[arg].idle then
+            nags_init(inst, arg)
+        end
+
+        --This is a new dialog block, so turn off special processing
+        dingon = true
+        pitchShifting = false
+        if SceneTable[arg].noDingOff then
+            inst.waitNoDingOff = true
+        else
+            inst.waitNoDingOff = false
+        end
+        if SceneTable[arg].noDingOn then
+            inst.waitNoDingOn = true
+        else
+            inst.waitNoDingOn = false
+        end
+    end
+
+    --If this scene is a nag/idle cycle, grab the next line off the stack
+    if inst.isNag then
+        --If we're not in a vcd chain, grab the next vcd from the randomized pool
+        if not inst.naginchain then
+            arg = nags_fetch(inst)
+        end
+        --if nothing fetched (because the nag has used all the lines and isn't marked as "repeat"), remove this scene
+        if arg == nil then
+            scenequeue_DeleteScene(inst.index)
+            return
+        end
+    end
+
+    --Set ducking volume correctly for booming glados audio
+    --RunConsoleCommand("snd_ducktovolume", "0.2") --// left disabled to match glados.lua's port; re-enable if this file needs it
+
+    local preDelay = 0.00
+    preDelay = EvaluateTimeKey("predelay", SceneTable[arg])
+    if fromqueue and SceneTable[arg].queuepredelay then
+        preDelay = EvaluateTimeKey("queuepredelay", SceneTable[arg])
+    end
+
+    if arg ~= nil then
+        local ltalkover = SceneTable[arg].talkover
+
+        --Cancel any vcd that's already playing
+        if not ltalkover then
+            GladosAllCharactersStopScene()
+        else
+            --characters can't currently talk over themselves
+            if not SceneTable[arg].char then
+                SceneTable[arg].char = "glados"
+            end
+            GladosCharacterStopScene(SceneTable[arg].char)
+        end
+
+        --Play the initial ding (unless the scene specifically requests no ding)
+        if dingon and not inst.waitNoDingOn then
+            EntFireByHandle(sceneDingOn, "Start", "", preDelay, nil, nil)
+        end
+
+        --Start the new vcd
+        printDBG("===================Playing:" .. arg)
+        if not SceneTable[arg].char then
+            SceneTable[arg].char = "glados"
+        end
+        inst.currentCharacter = SceneTable[arg].char
+
+        --Bind the OnCompletion Event
+        --SceneTable[arg].vcd:ValidateScriptScope()
+        --SceneTable[arg].vcd:GetScriptScope().PlayNextScene = PlayNextScene
+        --SceneTable[arg].vcd:DisconnectOutput("OnCompletion", "PlayNextScene")
+        --SceneTable[arg].vcd:ConnectOutput("OnCompletion", "PlayNextScene")
+        --SceneTable[arg].vcd:ConnectOutput("OnCanceled", "SceneCanceled")
+        hook.Remove("OnCompletion", "PlayNextSceneHook_Coop")
+        hook.Add("OnCompletion", "PlayNextSceneHook_Coop", PlayNextScene)
+        hook.Add("OnCanceled", "SceneCanceledHook_Coop", SceneCanceled)
+
+        --Set the target1 if necessary
+        if caller ~= nil then
+            if type(caller) == "string" then
+                EntFireByHandle(SceneTable[arg].vcd, "SetTarget1", caller, 0, nil, nil)
+                printDBG("++++++++++++SETTING TARGET: " .. caller)
+            else
+                EntFireByHandle(SceneTable[arg].vcd, "SetTarget1", caller.GetName(), 0, nil, nil)
+            end
+        end
+        if SceneTable[arg].settarget1 then
+            EntFireByHandle(SceneTable[arg].vcd, "SetTarget1", SceneTable[arg].settarget1, 0, nil, nil)
+        end
+
+        inst.waitVcdTeam = SceneTable[arg].index
+        inst.waitVcdCurrent = arg
+        inst:addFiredVcd(SceneTable[arg].index)
+
+        if dingon and not inst.waitNoDingOn then
+            EntFireByHandle(SceneTable[arg].vcd, "Start", "", preDelay + 0.18, nil, nil)
+        else
+            EntFireByHandle(SceneTable[arg].vcd, "Start", "", preDelay, nil, nil)
+        end
+
+        --Does this vcd have a "fire into entities" array?
+        if SceneTable[arg].fires then
+            for idx, val in pairs(SceneTable[arg].fires) do
+                if val.fireatstart then
+                    printDBG(">>>>>>ENT FIRE AT START: " .. val.entity .. ":" .. val.input)
+                    EntFire(val.entity, val.input, val.parameter, val.delay)
+                end
+            end
+        end
+
+        if SceneTable[arg].special then
+            if SceneTable[arg].special == 1 then --Block-wide pitch shifting
+                pitchShifting = true
+            elseif SceneTable[arg].special == 2 then --Speed up
+                if pitchOverride == nil then
+                    EntFireByHandle(SceneTable[arg].vcd, "PitchShift", "2.5", 0, nil, nil)
+                end
+            elseif SceneTable[arg].special == 3 then --Slow down a bit
+                EntFireByHandle(SceneTable[arg].vcd, "PitchShift", "0.9", 0, nil, nil)
+            end
+        end
+        if pitchOverride ~= nil then
+            EntFireByHandle(SceneTable[arg].vcd, "PitchShift", tostring(pitchOverride), 0, nil, nil)
+        end
+
+        --Setup next line (if there is one)
+        if SceneTable[arg].next ~= nil or inst.isNag then
+            local pdelay = EvaluateTimeKey("postdelay", SceneTable[arg])
+
+            --if this is a nag, use min/max defined in the first entry in the scene
+            if inst.isNag then
+                pdelay = math.Rand(inst.nagminsecs, inst.nagmaxsecs)
+            end
+
+            if pdelay < 0.00 then
+                if inst.isNag then
+                    --If the "next" key ~= nil, it means we're in a vcd chain
+                    if SceneTable[arg].next ~= nil then
+                        inst.waitNext = SceneTable[arg].next
+                        inst.naginchain = true
+                    else
+                        --Otherwise, just slug in the same index (any non-nil value would work here, however)
+                        inst.waitNext = arg
+                        inst.naginchain = false
+                    end
+                else
+                    inst.waitNext = SceneTable[arg].next
+                end
+                inst.waitExitingEarly = true
+                inst.waitLength = nil
+                inst.waitExitingEarlyStartTime = CurTime()
+                --If we're in a nag vcd chain, use the vcds postdelay rather than the nag-wide delay
+                --This is because vcd chains generally need to be explicitly timed at the chain level
+                --since the vcds are grouped together as a block
+                if inst.naginchain then
+                    pdelay = EvaluateTimeKey("postdelay", SceneTable[arg])
+                end
+                inst.waitExitingEarlyThreshold = pdelay * -1
+            else
+                inst.waitExitingEarly = false
+                if inst.isNag then
+                    --If the "next" key ~= nil, it means we're in a vcd chain
+                    if SceneTable[arg].next ~= nil then
+                        inst.waitNext = SceneTable[arg].next
+                        inst.naginchain = true
+                    else
+                        --Otherwise, just slug in the same index (any non-nil value would work here, however)
+                        inst.waitNext = arg
+                        inst.naginchain = false
+                    end
+                else
+                    inst.waitNext = SceneTable[arg].next
+                end
+                --If we're in a nag vcd chain, use the vcds postdelay rather than the nag-wide delay
+                --This is because vcd chains generally need to be explicitly timed at the chain level
+                --since the vcds are grouped together as a block
+                if inst.naginchain then
+                    pdelay = EvaluateTimeKey("postdelay", SceneTable[arg])
+                end
+            end
+            inst.waitLength = pdelay
+        else
+            inst.waitNext = nil
+            printDBG("===================SCENE END")
+        end
+    end
+end
 
 function EvaluateTimeKey(keyname, keytable)
-{
 	local ret = nil
 
- 	if (keyname in keytable)
- 	{
- 		local typ = typeof keytable[keyname]
- 		if (typ == "array")
- 		{
- 			if (keytable[keyname].len() ~= 2)
- 			{
-				printlDBG("!!!!!!!!!!!!EVALUATE TIME KEY ERROR: "+keyname+" is an array with a length ~= 2") 		
+ 	if keytable.keyname then
+ 		local typ = type(keytable[keyname])
+ 		if typ == "array" then
+ 			if #keytable[keyname] ~= 2 then
+				printDBG("!!!!!!!!!!!!EVALUATE TIME KEY ERROR: "..keyname.." is an array with a length ~= 2") 		
 				return 0.00
- 			}
-	 		ret = RandomFloat(keytable[keyname][0],keytable[keyname][1])
-	 	}
+			end
+	 		ret = math.Rand(keytable[keyname][0],keytable[keyname][1])
 	 	else
-	 	{
 	 		ret = keytable[keyname]
-	 	}	
- 	}
- 	if (ret == nil)
+		end
+ 	end
+ 	if ret == nil then
  		ret = 0.00
-	printlDBG(">>>>>>>>>EVALUATE TIME KEY: "+keyname+" : "+ret) 		
+	end
+	printDBG(">>>>>>>>>EVALUATE TIME KEY: "..keyname.." : "..ret) 		
  	return ret
-}
-
+end
+--[[
 
 function GladosToggleDBG(arg = nil)
 {
 	DBG = !DBG
 	if (DBG)
-		printl("======================GLaDOS DBG ON")
+		print("======================GLaDOS DBG ON")
 	else
-		printl("======================GLaDOS DBG OFF")
+		print("======================GLaDOS DBG OFF")
 	if (arg~=nil)
 		DBGInterval = arg
 }
@@ -925,52 +880,43 @@ function GladosSetPitch(arg)
 		EntFireByHandle( curscene, "PitchShift", pitchOverride.tostring(), 0, nil, nil )
 }
 
-
+]]
 --Stops a scene for all characters
 function GladosAllCharactersStopScene()
-{
 	GladosCharacterStopScene("glados")
 	GladosCharacterStopScene("wheatley")
 	GladosCharacterStopScene("cave_body")
-}
+end
 
 function characterCurscene(arg)
-{
-	local ret = nil, ent = nil
-	switch (arg)
-	{
-		case "glados":
-		case "@glados":
-			ent = Entities.FindByName(ent, "@glados")
-			break
-		case "@sphere":
-		case "wheatley":	
-		case "sphere":
-			ent = Entities.FindByName(ent, "@sphere")
-			break
-		case "cave_body":	
-		case "cavebody":	
-			ent = Entities.FindByName(ent, "@cave_body")
-			break
-	}
-	if (ent ~= nil)
-	{
+	local ret = nil
+	local ent = nil
+	if arg == "glados" then
+	elseif arg == "@glados" then
+		ent = ents.FindByName(ent, "@glados")
+	elseif arg == "@sphere" then
+	elseif arg == "wheatley" then	
+	elseif arg == "sphere" then
+		ent = ents.FindByName(ent, "@sphere")
+	elseif arg == "cave_body" then	
+	elseif arg == "cavebody" then	
+		ent = ents.FindByName(ent, "@cave_body")
+	end
+	if ent ~= nil then
 		ret = ent.GetCurrentScene()
-	}	
+	end
 	return ret
-}
+end
 
 --Stops a scene for a particular character
 function GladosCharacterStopScene(arg)
-{
 	local ent = nil
 	local curscene = characterCurscene(arg)
-	if ( curscene ~= nil )
-	{
+	if curscene ~= nil then
 		EntFireByHandle( curscene, "Cancel", "", 0, nil, nil )
-	}
-}
-
+	end
+end
+--[[
 --Turns off current Glados speech
 function GladosStopTalking()
 {
@@ -1087,7 +1033,7 @@ function QueueGetNext()
 
 function QueueDBG()
 {
-	printlDBG("===================  items in queue-> " + Queue.len())
+	printDBG("===================  items in queue-> " + Queue.len())
 }
 
 --General stuff called from GladosThink()
@@ -1134,8 +1080,8 @@ function QueueTest()
 	local a = []
 	for(local i=0;i<10;i+=1)
 	{
-		a.append(math.random(1,100))
-		printlDBG(">>>>>> " + i + " : " + a[i])
+		a.append(RandomInt(1,100))
+		printDBG(">>>>>> " + i + " : " + a[i])
 	}
 	for (local i = a.len(); i>0; i-=1)
 	{
@@ -1144,7 +1090,7 @@ function QueueTest()
 	}
 	foreach (index, n in a)
 	{
-		printlDBG(">>>>>> " + index + " : " + a[index])
+		printDBG(">>>>>> " + index + " : " + a[index])
 	}
 }
 
@@ -1196,7 +1142,7 @@ function QueueCheck()
 function jailbreak_alert(arg)
 {
 	jailbreakpos =arg
-	printlDBG("==========JAILBREAK ALERT "+arg)
+	printDBG("==========JAILBREAK ALERT "+arg)
 }
 
 function jailbreak_whoah_speech()
@@ -1291,7 +1237,7 @@ function sp_sabotage_glados_stop_gibberish()
 
 function sp_sabotage_glados_gibberish()
 {
-	local i = math.random(1,7)
+	local i = RandomInt(1,7)
 	if (CurTime() - glados_gibbering_start > glados_gibbering_next)
 	{
 		SendToConsole( "scene_playvcd npc/glados/sp_sabotage_glados_gibberish0"+i)
@@ -1353,7 +1299,7 @@ function WheatleyBouncingDownTubeDialog()
 function WheatleyLandsInChamberDialog()
 {
 	GladosPlayVcd(-61)
-	printlDBG("==========HELLO!!!!!!!!!!!!!!!!!!!!!")
+	printDBG("==========HELLO!!!!!!!!!!!!!!!!!!!!!")
 	--wheatley - gladosbattle_pre01 -- Hello!
 	--gladosbattle_pre_09 -- i hate you so much
 }
@@ -1572,163 +1518,138 @@ function GladosTest1(arg)
 	}
 }
 
-
+]]
 ----------------------------------------------------------------------------------------------------------------
 --Scene Queue Functions START
 ----------------------------------------------------------------------------------------------------------------
+local scene = {}
+scene.__index = scene
+scene._nextId = 0
 
-class scene {
-	--constructor
-	constructor(a, caller)
-	{
-		index = a
-		owner = caller
-		currentCharacter = ""
-		waitSceneStart = 0 --1 means we're waiting for the current vcd to finish so we can play the next vcd in the chain
-		waiting = 0  
-		waitVcdCurrent = nil
-		waitStartTime = CurTime()
-		waitLength = CurTime()
-		waitNext = nil 
-		waitExitingEarly = false 
-		waitExitingEarlyStartTime = CurTime() 
-		waitExitingEarlyThreshold = 0.00 --How many seconds sould the VCD play before moving on to the next one
-		waitNoDingOff = false
-		waitNoDingOn = false
-		waitVcdTeam = -1
-		waitFiredVcds = []
-		nagminsecs = 0
-		nagmaxsecs = 0
-		nags = []
-		isNag = false
-		nagpool = []
-		naglastfetched = nil
-		nagrandom = false
-		nagrandomonrepeat = false
-		nagtimeslistcompleted = 0
-		nagrepeat = false
-		naginchain = false
-	}
-	
-	function nagsClear()
-	{
-		naglastfetched = nil
-		nags.clear()
-	}
-	
-	function nagpoolClear()
-	{
-		nagpool.clear()
-	}
+-- constructor
+function scene:new(a, caller)
+    local obj = setmetatable({}, self)  -- self == scene
+
+	self._nextId = self._nextId + 1
+    obj.id = self._nextId
+
+    -- scalar fields
+    obj.index                     = a or 0
+    obj.owner                     = caller or nil
+    obj.currentCharacter          = ""
+    obj.waitSceneStart            = 0
+    obj.waiting                   = 0
+    obj.waitVcdCurrent            = nil
+    obj.waitStartTime             = CurTime()
+    obj.waitLength                = CurTime()
+    obj.waitNext                  = nil
+    obj.waitExitingEarly          = false
+    obj.waitExitingEarlyStartTime = CurTime()
+    obj.waitExitingEarlyThreshold = 0.00
+    obj.waitDelayingUntil         = nil
+    obj.waitPreDelayed            = false
+    obj.waitPreDelayedEntry       = nil
+    obj.waitNoDingOff             = false
+    obj.waitNoDingOn              = false
+    obj.waitVcdTeam               = -1
+
+    obj.nagminsecs                = 0
+    obj.nagmaxsecs                = 0
+    obj.isNag                     = false
+    obj.naglastfetched            = nil
+    obj.nagrandom                 = false
+    obj.nagrandomonrepeat         = false
+    obj.nagtimeslistcompleted     = 0
+    obj.nagrepeat                 = false
+    obj.naginchain                = false
+
+    -- per-instance tables
+    obj.waitFiredVcds             = {}
+    obj.waitFires                 = {}
+    obj.nags                      = {}
+    obj.nagpool                   = {}
+
+    return obj
+end
+
+setmetatable(scene, {
+    __call = function(cls, ...)
+        return cls:new(...)
+    end
+})
 
 
-	function addFiredVcd(team)
-	{
-		waitFiredVcds.append(team)
-	}
+-- METHODS -----------------------------------------
 
-	function deleteFiredVcd(team)
-	{
-		local idx, val
-		local fnd = nil
-		foreach (idx, val in waitFiredVcds)
-		{
-			if (val == team)
-			{
-				fnd = idx
-				break
-			}
-		}	
-		if (fnd ~= nil)
-		{
-			waitFiredVcds.remove(fnd)
-		}
-	}
+function scene:nagsClear()
+    self.naglastfetched = nil
+    self.nags = {}
+end
 
-	
-	--property
-	index = 0;
-	owner = nil;
-	currentCharacter = "";
-	waitSceneStart = 0; --1 means we're waiting for the current vcd to finish so we can play the next vcd in the chain
-	waiting = 0;  
-	waitVcdCurrent = nil; --SceneTable index of last launched vcd
-	waitStartTime = 0;
-	waitLength = 0;
-	waitNext = nil; 
-	waitExitingEarly = false; 
-	waitExitingEarlyStartTime = 0; 
-	waitExitingEarlyThreshold = 0.00; --How many seconds sould the VCD play before moving on to the next one
-	waitNoDingOff = false;
-	waitNoDingOn = false;
-	waitFires = [];
-	waitVcdTeam = -1;
-	waitFiredVcds = [];
-	isNag = false;
-	nags = [];
-	nagpool = [];
-	nagminsecs = 0;
-	nagmaxsecs = 0;
-	naglastfetched = nil;
-	nagrandom = false;
-	nagrandomonrepeat = false;
-	nagtimeslistcompleted = 0;
-	nagrepeat = false;
-	naginchain = false;
-}
+function scene:nagpoolClear()
+    self.nagpool = {}
+end
 
+function scene:addFiredVcd(team)
+    table.insert(self.waitFiredVcds, team)
+end
+
+function scene:deleteFiredVcd(team)
+    local fnd = nil
+
+    for idx, val in ipairs(self.waitFiredVcds) do
+        if val == team then
+            fnd = idx
+            break
+        end
+    end
+
+    if fnd ~= nil then
+        table.remove(self.waitFiredVcds, fnd)
+    end
+end
 
 function scenequeue_AddScene(arg,char)
-{
 	local idx, val,delme
 	delme=nil
-	foreach (idx, val in scenequeue)
-	{
-		if (SceneTable[idx].char==char)
-		{
+	for idx, val in pairs(scenequeue) do
+		if SceneTable[idx].char==char then
 			delme = idx
-		}
-		if (idx == arg)
-		{
-			printlDBG(">>>>>>>>>>Scene "+arg+" is already in the queue")
+		end
+		if idx == arg then
+			printDBG(">>>>>>>>>>Scene "..arg.." is already in the queue")
 			return nil
-		}
-	}
-	if (delme ~= nil)
-	{
-		printlDBG(">>>>>>>>>>DELETING SCENE "+delme)
+		end
+	end
+	if delme ~= nil then
+		printDBG(">>>>>>>>>>DELETING SCENE "..delme)
 		scenequeue_DeleteScene(delme)
-	}
-	scenequeue[arg] = scene(arg, this)
+	end
+	scenequeue[arg] = scene:new(arg, self)
 	scenequeue_Dump()
 	return scenequeue[arg]
-}
+end
 
 function scenequeue_DeleteScene(arg)
-{
 	local idx, val
-	foreach (idx, val in scenequeue)
-	{
-		if (idx == arg)
-		{
-			printlDBG(">>>>>>>>>>Scene "+arg+" deleted!")
-			delete scenequeue[arg]
+	for idx, val in pairs(scenequeue) do
+		if idx == arg then
+			printDBG(">>>>>>>>>>Scene "..arg.." deleted!")
+			scenequeue[arg] = nil
 			return true
-		}
-	}
+		end
+	end
 	return nil
-}
+end
 
 function scenequeue_Dump()
-{
-	
-	printlDBG(">>>>>>>>>>Scene Dump at "+CurTime())
-	foreach (idx, val in scenequeue)
-	{
-		printlDBG(">>>>>>>>>>Scene "+idx+" ADDED at "+val.waitStartTime+" Type "+ typeof val)
-	}	
-}
+	printDBG(">>>>>>>>>>Scene Dump at "..CurTime())
+	for idx, val in pairs(scenequeue) do
+		printDBG(">>>>>>>>>>Scene "..idx.." ADDED at "..val.waitStartTime.." Type ".. type(val))
+	end
+end
 
+--[[
 ----------------------------------------------------------------------------------------------------------------
 --Scene Queue Functions END
 ----------------------------------------------------------------------------------------------------------------
@@ -1816,11 +1737,11 @@ function nags_createpool(inst)
 	foreach (idx, val in inst.nags)
 	{
 		takeit=false
-		if (val.totplays >= val.maxplays and val.maxplays>0)
+		if (val.totplays >= val.maxplays && val.maxplays>0)
 		{
 			continue
 		}
-		if (math.random(1,100)<val.rarity)
+		if (RandomInt(1,100)<val.rarity)
 		{
 			takeit=true
 		}	
@@ -1834,15 +1755,15 @@ function nags_createpool(inst)
 	if (tempa.len() == 0)
 		return
 	
-	if (inst.nagrandom or (inst.nagrandomonrepeat and inst.nagtimeslistcompleted > 0))
+	if (inst.nagrandom || (inst.nagrandomonrepeat && inst.nagtimeslistcompleted > 0))
 	{
 		--Make sure the first entry in the new list isn't the same as the last vcd played.
 		--This ensures no repeats.
-		if (tempa.len()>1 and inst.naglastfetched~=nil)
+		if (tempa.len()>1 && inst.naglastfetched~=nil)
 		{
 			while (true) 
 			{
-				r=math.random(0,tempa.len()-1)
+				r=RandomInt(0,tempa.len()-1)
 				if (tempa[r].SceneTableIndex ~= inst.naglastfetched)
 				{
 					inst.nagpool.append(tempa[r])
@@ -1854,7 +1775,7 @@ function nags_createpool(inst)
 		--Now build the rest of the pool
 		while (tempa.len()>0)
 		{
-			r=math.random(0,tempa.len()-1)
+			r=RandomInt(0,tempa.len()-1)
 			inst.nagpool.append(tempa[r])
 			tempa.remove(r)
 		}
@@ -1872,7 +1793,7 @@ function nags_nagpooldump(inst)
 {
 	local idx, val
 	foreach (idx, val in inst.nagpool)
-		printlDBG("*********NAG "+idx+" : "+val.SceneTableIndex)
+		printDBG("*********NAG "+idx+" : "+val.SceneTableIndex)
 }
 
 function nags_fetch(inst)
@@ -1922,7 +1843,7 @@ function nag_stop(char, stoptype)
 	local todel = nil
 	foreach (idx, val in scenequeue)
 	{
-		if (val.isNag and val.currentCharacter == char)
+		if (val.isNag && val.currentCharacter == char)
 		{
 			todel=idx
 			break
@@ -1960,11 +1881,10 @@ function TrustFlingCatapultTurretNoticesPlayer()
 
 
 
-
+]]
 ---------------------------------------------------------------------------------------
 --Context-specific functions
 ---------------------------------------------------------------------------------------
-]]
 function GladosPlayerGetsGun(arg)
 	if coopFirstPlayerToGetGun == 0 then
 		if arg == coopBlue then
@@ -1976,7 +1896,7 @@ function GladosPlayerGetsGun(arg)
 			coopFirstPlayerToGetGun = coopOrange
 			GladosPlayVcd(2)
 		end
-	else		
+	else	
 			if arg == coopBlue then
 				BlueHasGun=1
 				GladosPlayVcd(3)
@@ -1987,16 +1907,20 @@ function GladosPlayerGetsGun(arg)
 
 	end
 end
-
+--[[
 -- a newly spawned cube or sphere was destroyed 
 function GladosDroppedCubeDestroyed(arg)
-	if arg == coopBlue then
-		--EntFireByHandle( badCatchBlue, "Start", "", 0, nil, nil )
+{
+	if ( arg == coopBlue )
+	{
+		EntFireByHandle( badCatchBlue, "Start", "", 0, nil, nil )
+	}
 	else
-		--EntFireByHandle( badCatchOrange, "Start", "", 0, nil, nil )
-	end
-end
---[[
+	{
+		EntFireByHandle( badCatchOrange, "Start", "", 0, nil, nil )
+	}
+}
+
 function GladosGiveCompliment(arg)
 {
 	EntFireByHandle( ComplimentSceneTable[arg], "Start", "", 0, nil, nil )
@@ -2030,14 +1954,16 @@ end
 
 
 function CoopStartBButton(player)
-	if player == coopBlue and CoopStartBButtonSet == 0 then
+	
+	if player == coopBlue and CoopStartBButtonSet == 0 then	
 		CoopStartBButtonSet = 1
 		GladosPlayVcd(1004)	
 	end
 end
 
 function CoopStartButton(player)
-	if player == coopOrange and CoopStartButtonSet == 0 then
+	
+	if player == coopOrange and CoopStartButtonSet == 0 then	
 		CoopStartButtonSet = 1
 		GladosPlayVcd(1005)	
 	end
@@ -2103,8 +2029,8 @@ function GladosCoopReturnHubArtifact_1()
 function GladosToggleDBGMode()
 {
 	DBG = !DBG
-	if (DBG) printl("=======================GLaDOS DBG mode ON")
-	else printl("=======================GLaDOS DBG mode OFF")
+	if (DBG) print("=======================GLaDOS DBG mode ON")
+	else print("=======================GLaDOS DBG mode OFF")
 }
 
 ---------------------------------
@@ -2115,7 +2041,7 @@ function GladosCoopPAXEndDemo()
 {
 	GladosPlayVcd(153)
 }
-]]
+	
 --PrivateTalk mix vcds
 	PrivateMixVcds = {}
 	PrivateMixVcds[1] = CreateSceneEntity("scenes/npc/glados/COOP_PRIVATETALK_MIX01.vcd")
@@ -2145,19 +2071,23 @@ function GladosCoopPAXEndDemo()
 
 --Fires two different vcds - one for each player's ears only.
 function GladosPrivateTalk(player,vndx)
-	if player == coopBlue then
+{
+	if (player == coopBlue)
+	{
 		GladosSetBroadcastState( PrivateMixVcds[vndx], "blue" )
 		GladosSetBroadcastState( PrivateBothVcds[vndx], "orange" )
 		EntFireByHandle(PrivateMixVcds[vndx], "Start", "", 0.00, nil, nil )
 		EntFireByHandle(PrivateBothVcds[vndx], "Start", "", 0.00, nil, nil )
+	}	
 	else
+	{
 		GladosSetBroadcastState( PrivateMixVcds[vndx], "orange" )
 		GladosSetBroadcastState( PrivateBothVcds[vndx], "blue" )
 		EntFireByHandle(PrivateMixVcds[vndx], "Start", "", 0.0, nil, nil )
 		EntFireByHandle(PrivateBothVcds[vndx], "Start", "", 0.00, nil, nil )
-	end
-end
---[[
+	}
+}
+
 function GladosSayHello(player)
 {
 	if (player == coopBlue)
@@ -2171,21 +2101,27 @@ function GladosSayHello(player)
 		EntFireByHandle(HelloVcds[2], "Start", "", 0.00, nil, nil )
 	}
 }
-]]
+
 function GladosSetBroadcastState(vcd,target )
+{
 	local ORANGE_PLAYER = 2
 	local BLUE_PLAYER = 3
-	if target == "both" then
+	if ( target == "both" )
+	{
 		vcd.AddBroadcastTeamTarget( BLUE_PLAYER )
 		vcd.AddBroadcastTeamTarget( ORANGE_PLAYER )
-	elseif target == "blue" then
+	}
+	else if ( target == "blue" )
+	{
 		vcd.AddBroadcastTeamTarget( BLUE_PLAYER )
 		vcd.RemoveBroadcastTeamTarget( ORANGE_PLAYER )
-	elseif target == "orange" then
+	}
+	else if ( target == "orange" )
+	{
 		vcd.RemoveBroadcastTeamTarget( BLUE_PLAYER )
 		vcd.AddBroadcastTeamTarget( ORANGE_PLAYER )
-	end
-end
+	}
+}
 
 
 --Tells GLaDOS that the level wants to end and transition to the next level.
@@ -2193,9 +2129,10 @@ end
 --Relies on a relay called "gladosendoflevelrelay" in the map that actually switches levels when triggered.
 --GLaDOS triggers "gladosendoflevelrelay" from her think function.
 function GladosEndLevelRequest()
+{
 	coopWaitingToExit = true
-end
---[[
+}
+
 -----------------------------------------------------------
 --Score annoucing stuff
 -----------------------------------------------------------
@@ -2240,21 +2177,23 @@ end
 
 		}
 
-		printlDBG("2222222222222222222222222222222222")
+		printDBG("2222222222222222222222222222222222")
 	}
-]]
+
 	function GladosStateScore()
-		printlDBG("333333333333333333333333333333")
-	end
+	{
+		printDBG("333333333333333333333333333333")
+	}
 
 	function GladosStateScienceCollaborationPoints()
-				printlDBG("444444444444444444444444444444")
-	end
+	{
+				printDBG("444444444444444444444444444444")
+	}
 -----------------------------------------------------------
 --END OF Score annoucing stuff
 -----------------------------------------------------------
 
-
+]]
 ---------------------------------
 -- NEW NEW Ping Training Sequence stuff
 ---------------------------------
@@ -2262,41 +2201,45 @@ end
 	function GladosCoopPingReminder1()
 		GladosPlayVcd(45)
 	end
+--[[	
 ---------------------------------
 --Ping Training Sequence stuff
 ---------------------------------
 	--Play the ping training intro
 	function GladosCoopPingTrainingIntro()
+	{
 		GladosPlayVcd(10)
-	end
+	}
 
 	--Housecleaning / entity stuff that happens when the ping training is over  
 	function GladosCoopPingGameOver()
+	{
 		EntFire("aperture_door","SetSpeed",35, 0.00)
 		EntFire("aperture_door","Close", "", 0.00)
 		EntFire("dome_exit_door_blue","Open", "", 3.00)
 		EntFire("dome_exit_door_orange","Open", "", 3.00)
 		EntFire("platform_2_gate_exit","Open", "", 1.00)
 		EntFire("platform_1_gate_exit","Open", "", 1.00)
-	end
+	}
 
 	--Turns ping training game on
 	function GladosCoopPingTrainingGameOn()
-		if DBG then
-			printl("========================GAME ON!!!!!")
-		end
+	{
+		if (DBG)
+			print("========================GAME ON!!!!!")
 		coopPingGameOn = true  --We are in ping training mode!
 		coopPingPlayerTurn = coopBlue  --It's BLUE's turn
 		coopPingTurnNumber = 1 --It's turn #1
 		coopTimeSinceTurn = CurTime()  --Turn #1 starts NOW!
 		EntFire("PingHint","ShowHint", "!player_blue", 0.00)  --Fire the ping hint to blue player
-	end
+	}
 	
 	--Dome ping redirect
 	function GladosPingTrainingPingDome(arg)
+	{
 		GladosPingTrainingPing(arg)
-	end
---[[
+	}
+
 	--Handles player placing a ping
 	function GladosPingTrainingPing(arg)
 	{
@@ -2304,7 +2247,7 @@ end
 		if (arg == coopBlue) coopPingsBlue += 1
 		if (arg == coopOrange) coopPingsOrange += 1
 		--Process ping only if GLaDOS isn't talking
-		if ((!coopPingNoInterrupt) and coopPingGameOn)
+		if ((!coopPingNoInterrupt) && coopPingGameOn)
 		{
 			if (arg==coopBlue) --Ping belongs to BLUE
 			{
@@ -2376,21 +2319,21 @@ end
 			return
 		} 
 		--Give players a final warning
-		if (coopPingsBlue>0 and coopPingsOrange>0 and (coopWrongMovesBlue+coopWrongMovesOrange)>0 and !coopSaidWrongMovesDialog)
+		if (coopPingsBlue>0 && coopPingsOrange>0 && (coopWrongMovesBlue+coopWrongMovesOrange)>0 && !coopSaidWrongMovesDialog)
 		{
 			coopSaidWrongMovesDialog = true
 			GladosPingTrainingSpeak(11, true, 0.00)
 			return
 		}
 		--Tell BLUE not to go out of turn
-		if (arg==coopBlue and coopWrongMovesOrange == 0 and coopWrongMovesBlue < 5) --BLUE goes out of turn, but Orange hasn't placed a ping
+		if (arg==coopBlue && coopWrongMovesOrange == 0 && coopWrongMovesBlue < 5) --BLUE goes out of turn, but Orange hasn't placed a ping
 		{
 			GladosPingTrainingSpeak(13, true, 0.00)
 			coopWrongMovesBlue +=1
 			return
 		}
 		--Tell ORANGE not to go out of turn
-		if (arg==coopOrange and coopWrongMovesBlue == 0 and coopWrongMovesOrange < 5)
+		if (arg==coopOrange && coopWrongMovesBlue == 0 && coopWrongMovesOrange < 5)
 		{
 			GladosPingTrainingSpeak(14, true, 0.00)
 			coopWrongMovesOrange += 1
@@ -2468,16 +2411,14 @@ function CoopRaceButtonPress(player){
 		GladosPlayVcd(1013)	
 	}
 }
-
+]]
 function CoopStartHandOff()
-{
-}
+end
 
 function CoopStartBoxCatch()
-{
 		GladosPlayVcd(1023)
-}
-
+end
+--[[
 
 function GladosPingIntroDone()
 {
@@ -2494,18 +2435,18 @@ function CoopRadarRoom()
 	GladosPlayVcd(1009)
 	EndSpeedRunTimer()
 end
-
-function CoopBlueprintRoom()
+--[[
+function CoopBlueprintRoom(){
   LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire
 	GladosPlayVcd(1055) 
 	EndSpeedRunTimer()
-end
-function CoopSecutiryRoom()
+}
+function CoopSecutiryRoom(){
   LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire
 	GladosPlayVcd(1196)
 	EndSpeedRunTimer()
-end
---[[
+}
+
 function CoopTbeamSecurity()
 {
 	LastDeathTime=CurTime()+5000 --extra time added so death responses will not fire
@@ -2528,7 +2469,7 @@ function CoopTbeamSecurity()
 }
 
 function RespondToTaunt(tauntnumber){
-	printlDBG("-------------------------------------------RESPONDTOTAUNT"+tauntnumber)
+	printDBG("-------------------------------------------RESPONDTOTAUNT"+tauntnumber)
 	local curMapName = game.GetMap()
 	--taunt 0 given at start
 	LastTauntTime=CurTime()
@@ -2679,37 +2620,37 @@ function Fling1Drop4Balls(){
 
 function BotDeath(player,dmgtype)
 {
-	printlDBG("*******************DEATH***************************")
-	printlDBG(player)
-	printlDBG(dmgtype)
-	printlDBG(HumanResourceDeath4)
-	printlDBG(LastDeathTime)
-	printlDBG(mp_coop_tbeam_laser_1death1)
-	printlDBG(mp_coop_tbeam_laser_1death2)
-	printlDBG("*******************DEATH***************************")
+	printDBG("*******************DEATH***************************")
+	printDBG(player)
+	printDBG(dmgtype)
+	printDBG(HumanResourceDeath4)
+	printDBG(LastDeathTime)
+	printDBG(mp_coop_tbeam_laser_1death1)
+	printDBG(mp_coop_tbeam_laser_1death2)
+	printDBG("*******************DEATH***************************")
 	local curTime=CurTime()
 	if (curTime-LastDeathTime<10){
 		return
 	}
 	LastDeathTime=CurTime()
 		
-	if (curMapName == "mp_coop_tbeam_polarity3" and mp_coop_tbeam_polarity3deathblue==1 and player== coopBlue){		
+	if (curMapName == "mp_coop_tbeam_polarity3" && mp_coop_tbeam_polarity3deathblue==1 && player== coopBlue){		
 		mp_coop_tbeam_polarity3deathblue=2
 		GladosPlayVcd(1322)	
 		return
 	}
-	if (curMapName == "mp_coop_tbeam_polarity3" and mp_coop_tbeam_polarity3deathblue==0 and player== coopBlue){		
+	if (curMapName == "mp_coop_tbeam_polarity3" && mp_coop_tbeam_polarity3deathblue==0 && player== coopBlue){		
 		mp_coop_tbeam_polarity3deathblue=1
 		GladosPlayVcd(1323)	
 		return
 	}
 
-	if (curMapName == "mp_coop_tbeam_polarity3" and mp_coop_tbeam_polarity3deathorange==1 and player== coopOrange){		
+	if (curMapName == "mp_coop_tbeam_polarity3" && mp_coop_tbeam_polarity3deathorange==1 && player== coopOrange){		
 		mp_coop_tbeam_polarity3deathorange=2
 		GladosPlayVcd(1325)	
 		return
 	}
-	if (curMapName == "mp_coop_tbeam_polarity3" and mp_coop_tbeam_polarity3deathorange==0 and player== coopOrange){		
+	if (curMapName == "mp_coop_tbeam_polarity3" && mp_coop_tbeam_polarity3deathorange==0 && player== coopOrange){		
 		mp_coop_tbeam_polarity3deathorange=1
 		GladosPlayVcd(1324)	
 		return
@@ -2719,30 +2660,30 @@ function BotDeath(player,dmgtype)
 	
 	
 	
-	if (curMapName == "mp_coop_tbeam_drill" and mp_coop_tbeam_drilldeathblue==0 and player== coopBlue){		
+	if (curMapName == "mp_coop_tbeam_drill" && mp_coop_tbeam_drilldeathblue==0 && player== coopBlue){		
 		mp_coop_tbeam_drilldeathblue=1
 		GladosPlayVcd(1318)	
 		return
 	}
-	if (curMapName == "mp_coop_tbeam_drill" and mp_coop_tbeam_drilldeathorange==0 and player== coopOrange){		
+	if (curMapName == "mp_coop_tbeam_drill" && mp_coop_tbeam_drilldeathorange==0 && player== coopOrange){		
 		mp_coop_tbeam_drilldeathorange=1
 		GladosPlayVcd(1319)	
 		return
 	}
 
-	if (curMapName == "mp_coop_tbeam_polarity" and mp_coop_tbeam_polaritydeathblue==0 and player== coopBlue){		
+	if (curMapName == "mp_coop_tbeam_polarity" && mp_coop_tbeam_polaritydeathblue==0 && player== coopBlue){		
 		mp_coop_tbeam_polaritydeathblue=1
 		GladosPlayVcd(1320)	
 		return
 	}
-	if (curMapName == "mp_coop_tbeam_polarity" and mp_coop_tbeam_polaritydeathorange==0 and player== coopOrange){		
+	if (curMapName == "mp_coop_tbeam_polarity" && mp_coop_tbeam_polaritydeathorange==0 && player== coopOrange){		
 		mp_coop_tbeam_polaritydeathorange=1
 		GladosPlayVcd(1321)	
 		return
 	}
 
 
-	if (curMapName == "mp_coop_tbeam_redirect" and mp_coop_tbeam_redirectdeath==0){		
+	if (curMapName == "mp_coop_tbeam_redirect" && mp_coop_tbeam_redirectdeath==0){		
 		mp_coop_tbeam_redirectdeath=1
 		GladosPlayVcd(1316)	
 		return
@@ -2780,19 +2721,19 @@ function BotDeath(player,dmgtype)
 			return
 		}
 	}
-	if (curMapName == "mp_coop_turret_walls" and mp_coop_turret_wallscount==9){		
+	if (curMapName == "mp_coop_turret_walls" && mp_coop_turret_wallscount==9){		
 		GladosPlayVcd(1192)	
 	}
 
-	if (curMapName == "mp_coop_turret_walls" and mp_coop_turret_wallscount==4){		
+	if (curMapName == "mp_coop_turret_walls" && mp_coop_turret_wallscount==4){		
 		GladosPlayVcd(1193)	
 	}
 	
-	if (curMapName == "mp_coop_turret_walls" and mp_coop_turret_wallscount==2){		
+	if (curMapName == "mp_coop_turret_walls" && mp_coop_turret_wallscount==2){		
 		GladosPlayVcd(1191)	
 	}
 	
-	if (curMapName == "mp_coop_turret_walls" and mp_coop_turret_wallscount==0){		
+	if (curMapName == "mp_coop_turret_walls" && mp_coop_turret_wallscount==0){		
 		GladosPlayVcd(1153)
 	}	
 	
@@ -2801,7 +2742,7 @@ function BotDeath(player,dmgtype)
 	}
 	
 	
-	if (curMapName == "mp_coop_turret_ball" and mp_coop_turret_ballcount==2){		
+	if (curMapName == "mp_coop_turret_ball" && mp_coop_turret_ballcount==2){		
 		if (player==2){
 			GladosPlayVcd(1189)	
 		}
@@ -2811,38 +2752,38 @@ function BotDeath(player,dmgtype)
 		mp_coop_turret_ballcount=3
 	}
 	
-	if (curMapName == "mp_coop_turret_ball" and mp_coop_turret_ballcount==1){
+	if (curMapName == "mp_coop_turret_ball" && mp_coop_turret_ballcount==1){
 		mp_coop_turret_ballcount=2
 		GladosPlayVcd(1190)	
 	}
-	if (curMapName == "mp_coop_turret_ball" and mp_coop_turret_ballcount==0){
+	if (curMapName == "mp_coop_turret_ball" && mp_coop_turret_ballcount==0){
 		mp_coop_turret_ballcount=1
 		GladosPlayVcd(1187)	
 	}	
 		
 	if (curMapName == "mp_coop_tbeam_end" ){
 		local fireddeath = 0
-		if (dmgtype==2 and Tbeam_enddeathturret==0){
+		if (dmgtype==2 && Tbeam_enddeathturret==0){
 				Tbeam_enddeathturret=1
 				fireddeath=1
 				GladosPlayVcd(1180)	
 		}
-		if (dmgtype==32 and Tbeam_enddeathfall==0){
+		if (dmgtype==32 && Tbeam_enddeathfall==0){
 			Tbeam_enddeathfall=1
 			fireddeath=1
 			GladosPlayVcd(1179)	
 		}
-		if (Tbeam_enddeathother==2 and fireddeath==0)
+		if (Tbeam_enddeathother==2 && fireddeath==0)
 		{
 			GladosPlayVcd(1181)
 			Tbeam_enddeathother=Tbeam_enddeathother+1
 		}
-		if (Tbeam_enddeathother==1 and fireddeath==0)
+		if (Tbeam_enddeathother==1 && fireddeath==0)
 		{
 			GladosPlayVcd(1182)
 			Tbeam_enddeathother=Tbeam_enddeathother+1
 		}
-		if (Tbeam_enddeathother==0 and fireddeath==0)
+		if (Tbeam_enddeathother==0 && fireddeath==0)
 		{
 			GladosPlayVcd(1183)
 			Tbeam_enddeathother=Tbeam_enddeathother+1
@@ -2854,33 +2795,33 @@ function BotDeath(player,dmgtype)
 	
 	if (curMapName == "mp_coop_rat_maze" )
 	{
-		if (player== coopBlue and dmgtype == 1 and BlueInMaze == 1 and CoopMazeBlueCrushset == 2)
+		if (player== coopBlue && dmgtype == 1 && BlueInMaze == 1 && CoopMazeBlueCrushset == 2)
 		{
 				CoopMazeBlueCrushset = 3
 				GladosPlayVcd(1047)	
 		}
-		if (player== coopOrange and dmgtype == 1 and OrangeInMaze == 1  and CoopMazeOrangeCrushset == 2)
+		if (player== coopOrange && dmgtype == 1 && OrangeInMaze == 1  && CoopMazeOrangeCrushset == 2)
 		{
 				CoopMazeOrangeCrushset = 3
 				GladosPlayVcd(1048)	
 		}					
-		if (player==coopBlue and dmgtype == 1 and BlueInMaze == 1 and CoopMazeBlueCrushset == 1)
+		if (player==coopBlue && dmgtype == 1 && BlueInMaze == 1 && CoopMazeBlueCrushset == 1)
 		{
 				CoopMazeBlueCrushset = 2
 				GladosPlayVcd(1045)	
 		}
-		if (player== coopOrange and dmgtype == 1 and OrangeInMaze == 1  and CoopMazeOrangeCrushset == 1)
+		if (player== coopOrange && dmgtype == 1 && OrangeInMaze == 1  && CoopMazeOrangeCrushset == 1)
 		{
 				CoopMazeOrangeCrushset = 2
 				GladosPlayVcd(1046)	
 		}				
 
-		if (player==coopBlue and dmgtype == 1 and BlueInMaze == 1 and CoopMazeBlueCrushset == 0)
+		if (player==coopBlue && dmgtype == 1 && BlueInMaze == 1 && CoopMazeBlueCrushset == 0)
 		{
 				CoopMazeBlueCrushset = 1
 				GladosPlayVcd(1043)	
 		}
-		if (player== coopOrange and dmgtype == 1 and OrangeInMaze == 1  and CoopMazeOrangeCrushset == 0)
+		if (player== coopOrange && dmgtype == 1 && OrangeInMaze == 1  && CoopMazeOrangeCrushset == 0)
 		{
 				CoopMazeOrangeCrushset = 1
 				GladosPlayVcd(1044)	
@@ -2892,25 +2833,25 @@ function BotDeath(player,dmgtype)
 	if (curMapName == "mp_coop_laser_crusher")
 	{
 		mp_coop_laser_crusherdeath=1
-		if (player==coopBlue and dmgtype == 1 and BlueInCrusher == 1 and CoopCrushersBlueCrushset == 1)
+		if (player==coopBlue && dmgtype == 1 && BlueInCrusher == 1 && CoopCrushersBlueCrushset == 1)
 		{
 				CoopCrushersOrangeCrushset = 2
 				CoopCrushersBlueCrushset = 2
 				GladosPlayVcd(1042)	
 		}
-		if (player== coopOrange and dmgtype == 1 and OrangeInCrusher == 1  and CoopCrushersOrangeCrushset == 1)
+		if (player== coopOrange && dmgtype == 1 && OrangeInCrusher == 1  && CoopCrushersOrangeCrushset == 1)
 		{
 				CoopCrushersOrangeCrushset = 2
 				CoopCrushersBlueCrushset = 2
 				GladosPlayVcd(1042)	
 		}				
 
-		if (player==coopBlue and dmgtype == 1 and BlueInCrusher == 1 and CoopCrushersBlueCrushset == 0)
+		if (player==coopBlue && dmgtype == 1 && BlueInCrusher == 1 && CoopCrushersBlueCrushset == 0)
 		{
 				CoopCrushersBlueCrushset = 1
 				GladosPlayVcd(1040)	
 		}
-		if (player== coopOrange and dmgtype == 1 and OrangeInCrusher == 1  and CoopCrushersOrangeCrushset == 0)
+		if (player== coopOrange && dmgtype == 1 && OrangeInCrusher == 1  && CoopCrushersOrangeCrushset == 0)
 		{
 				CoopCrushersOrangeCrushset = 1
 				GladosPlayVcd(1041)	
@@ -2937,149 +2878,149 @@ function BotDeath(player,dmgtype)
 			startdeath=startdeath+1
 
 		}
-		if (player==coopBlue and startdeath==0)
+		if (player==coopBlue && startdeath==0)
 		{
 			startdeath=startdeath+1
 			GladosPlayVcd(1088)
 
 		}
-		if (player==coopOrange and startdeath==0)
+		if (player==coopOrange && startdeath==0)
 		{
 			startdeath=startdeath+1
 			GladosPlayVcd(1087)
 		}
 	}
-	if (curMapName == "mp_coop_lobby_2" and InHub2==1 and InHub2Set==0 )	{
+	if (curMapName == "mp_coop_lobby_2" && InHub2==1 && InHub2Set==0 )	{
 			InHub2Set=1
 			GladosPlayVcd(1096)
 	}
 	if (curMapName == "mp_coop_wall_2")	{
 			mp_coop_wall_2death=mp_coop_wall_2death+1
 	}
-	if (curMapName == "mp_coop_paint_redirect" and HumanResourceDeath1==2 ){
+	if (curMapName == "mp_coop_paint_redirect" && HumanResourceDeath1==2 ){
 		HumanResourceDeath1=3
 		GladosPlayVcd(1294)	
 	}
 
-	if (curMapName == "mp_coop_paint_redirect" and HumanResourceDeath1==1 ){
+	if (curMapName == "mp_coop_paint_redirect" && HumanResourceDeath1==1 ){
 		HumanResourceDeath1=2
 		GladosPlayVcd(1293)	
 	}
 
-	if (curMapName == "mp_coop_paint_redirect" and HumanResourceDeath1==0 ){
+	if (curMapName == "mp_coop_paint_redirect" && HumanResourceDeath1==0 ){
 		HumanResourceDeath1=1
 		GladosPlayVcd(1145)	
 	}
-	if (curMapName == "mp_coop_paint_bridge" and HumanResourceDeath2==1){
+	if (curMapName == "mp_coop_paint_bridge" && HumanResourceDeath2==1){
 		HumanResourceDeath2=2
 		GladosPlayVcd(1296)	
 	}
-	if (curMapName == "mp_coop_paint_bridge" and HumanResourceDeath2==0){
+	if (curMapName == "mp_coop_paint_bridge" && HumanResourceDeath2==0){
 		HumanResourceDeath2=1
 		GladosPlayVcd(1146)	
 	}
 
-	if (curMapName == "mp_coop_paint_walljumps" and HumanResourceDeath3==0){
+	if (curMapName == "mp_coop_paint_walljumps" && HumanResourceDeath3==0){
 		HumanResourceDeath3=1
 		GladosPlayVcd(1150)	
 	}
-	if (curMapName == "mp_coop_paint_red_racer" and HumanResourceDeath4==5){
+	if (curMapName == "mp_coop_paint_red_racer" && HumanResourceDeath4==5){
 		HumanResourceDeath4=6
 		GladosPlayVcd(1186)	
 	}	
-	if (curMapName == "mp_coop_paint_red_racer" and HumanResourceDeath4==4){
+	if (curMapName == "mp_coop_paint_red_racer" && HumanResourceDeath4==4){
 		HumanResourceDeath4=HumanResourceDeath4+1
 	}		
-	if (curMapName == "mp_coop_paint_red_racer" and HumanResourceDeath4==3){
+	if (curMapName == "mp_coop_paint_red_racer" && HumanResourceDeath4==3){
 		HumanResourceDeath4=HumanResourceDeath4+1
 	}	
-	if (curMapName == "mp_coop_paint_red_racer" and HumanResourceDeath4==2){
+	if (curMapName == "mp_coop_paint_red_racer" && HumanResourceDeath4==2){
 		HumanResourceDeath4=3
 		GladosPlayVcd(1185)	
 	}
-	if (curMapName == "mp_coop_paint_red_racer" and HumanResourceDeath4==1){
+	if (curMapName == "mp_coop_paint_red_racer" && HumanResourceDeath4==1){
 		HumanResourceDeath4=2
 		GladosPlayVcd(1184)	
 	}
-	if (curMapName == "mp_coop_paint_red_racer" and HumanResourceDeath4==0){
+	if (curMapName == "mp_coop_paint_red_racer" && HumanResourceDeath4==0){
 		HumanResourceDeath4=1
 		GladosPlayVcd(1148)	
 	}
-	if (curMapName == "mp_coop_paint_speed_catch" and HumanResourceDeath5==0){
+	if (curMapName == "mp_coop_paint_speed_catch" && HumanResourceDeath5==0){
 		HumanResourceDeath5=1
 		GladosPlayVcd(1149)	
 	}
-	if (curMapName == "mp_coop_paint_speed_fling" and HumanResourceDeath6==0){
+	if (curMapName == "mp_coop_paint_speed_fling" && HumanResourceDeath6==0){
 		HumanResourceDeath6=1
 		GladosPlayVcd(1299)	
 	}
-		if (curMapName == "mp_coop_paint_longjump_intro" and HumanResourceDeath7==3){
+		if (curMapName == "mp_coop_paint_longjump_intro" && HumanResourceDeath7==3){
 		HumanResourceDeath7=4
 		GladosPlayVcd(1303)	
 	}
-		if (curMapName == "mp_coop_paint_longjump_intro" and HumanResourceDeath7==2){
+		if (curMapName == "mp_coop_paint_longjump_intro" && HumanResourceDeath7==2){
 		HumanResourceDeath7=3
 		GladosPlayVcd(1302)	
 	}
-	if (curMapName == "mp_coop_paint_longjump_intro" and HumanResourceDeath7==1){
+	if (curMapName == "mp_coop_paint_longjump_intro" && HumanResourceDeath7==1){
 		HumanResourceDeath7=2
 		GladosPlayVcd(1301)	
 	}
-	if (curMapName == "mp_coop_paint_longjump_intro" and HumanResourceDeath7==0){
+	if (curMapName == "mp_coop_paint_longjump_intro" && HumanResourceDeath7==0){
 		HumanResourceDeath7=1
 		GladosPlayVcd(1300)	
 	}
 	
  
 
-	if (curMapName == "mp_coop_race_2"and EarlyDeath1==0 ){
+	if (curMapName == "mp_coop_race_2"&& EarlyDeath1==0 ){
 		EarlyDeath1=1
 		GladosPlayVcd(1151)	
 	}
-	if (curMapName == "mp_coop_multifling_1" and  EarlyDeath2==0){
+	if (curMapName == "mp_coop_multifling_1" &&  EarlyDeath2==0){
 		EarlyDeath2=1
 		GladosPlayVcd(1152)	
 		--add this line to ending if earlydeath2~=1
 	}
-	if (curMapName == "mp_coop_fling_crushers" and EarlyDeath3==2){
+	if (curMapName == "mp_coop_fling_crushers" && EarlyDeath3==2){
 		EarlyDeath3=3
 		GladosPlayVcd(1178)	
 	}
 
-	if (curMapName == "mp_coop_fling_crushers" and EarlyDeath3==1){
+	if (curMapName == "mp_coop_fling_crushers" && EarlyDeath3==1){
 		EarlyDeath3=2
 		GladosPlayVcd(1177)	
 	}
-	if (curMapName == "mp_coop_fling_crushers" and EarlyDeath3==0){
+	if (curMapName == "mp_coop_fling_crushers" && EarlyDeath3==0){
 		EarlyDeath3=1
 		GladosPlayVcd(1147)	
 	}
 
 
-	if (curMapName == "mp_coop_come_along" and EarlyDeath4==0){
+	if (curMapName == "mp_coop_come_along" && EarlyDeath4==0){
 		EarlyDeath4=1
 		GladosPlayVcd(1154)	
 	}
-	if (curMapName == "mp_coop_catapult_1" and EarlyDeath5==0){
+	if (curMapName == "mp_coop_catapult_1" && EarlyDeath5==0){
 		EarlyDeath5=1
 		GladosPlayVcd(1155)	
 	}
 	if (curMapName == "mp_coop_tbeam_laser_1" ){
-		if (player==2 and mp_coop_tbeam_laser_1death1==0){
+		if (player==2 && mp_coop_tbeam_laser_1death1==0){
 				mp_coop_tbeam_laser_1death1=1
 				GladosPlayVcd(1204)	
 				return
 		}
-		if (player==1 and mp_coop_tbeam_laser_1death2==0){
+		if (player==1 && mp_coop_tbeam_laser_1death2==0){
 				mp_coop_tbeam_laser_1death2=1
 				GladosPlayVcd(1206)	
 		}
-		if (player==2 and mp_coop_tbeam_laser_1death3==1){
+		if (player==2 && mp_coop_tbeam_laser_1death3==1){
 				mp_coop_tbeam_laser_1death1=2
 				GladosPlayVcd(1205)	
 		}
 	}
-	if (curMapName == "mp_coop_infinifling_train" and mp_coop_infinifling_traindeath01==0){
+	if (curMapName == "mp_coop_infinifling_train" && mp_coop_infinifling_traindeath01==0){
 		mp_coop_infinifling_traindeath01=1
 		GladosPlayVcd(1255)	
 	}
@@ -3087,18 +3028,18 @@ function BotDeath(player,dmgtype)
 			mp_coop_infinifling_traindeath=mp_coop_infinifling_traindeath+1
 	}
 	
-	if (curMapName == "mp_coop_catapult_wall_intro" and mp_coop_catapult_wall_introdeath==0){
+	if (curMapName == "mp_coop_catapult_wall_intro" && mp_coop_catapult_wall_introdeath==0){
 		mp_coop_catapult_wall_introdeath=1
 		GladosPlayVcd(1257)	
 	}
-	if (curMapName == "mp_coop_wall_block" and mp_coop_wall_blockdeath==0){
+	if (curMapName == "mp_coop_wall_block" && mp_coop_wall_blockdeath==0){
 		mp_coop_wall_blockdeath=1
 		GladosPlayVcd(1258)	
 	}
 }
 
 function CoopCrushersBox(player){
-		local x = math.random(1,100)
+		local x = RandomInt(1,100)
 		if (x>50)
 		{
 			GladosPlayVcd(1012)	
@@ -3112,66 +3053,84 @@ function CoopCrushersBox(player){
 ]]
 function GladosCoopMapStart()
 	local curMapName = game.GetMap()
-	------/Calibration Course
+------/Calibration Course
 			--/function handled elsewhere	
-	------/Team Building Course	
-	if curMapName == "mp_coop_doors" then
+------/Team Building Course			
+	if curMapName == "mp_coop_doors" then  --introduction
 		GladosPlayVcd(54)
-	elseif curMapName == "mp_coop_race_2" then
+		
+	elseif curMapName == "mp_coop_race_2" then  --human sports - fewest possible points
 		GladosPlayVcd(1022)
-	elseif curMapName == "mp_coop_laser_2" then
+					
+	elseif curMapName == "mp_coop_laser_2" then -- potentially lethal
 		GladosPlayVcd(1016)
-	elseif curMapName == "mp_coop_rat_maze" then
-	elseif curMapName == "mp_coop_laser_crusher" then
+		
+	elseif curMapName == "mp_coop_rat_maze" then --forged partnership - one lazy
+			
+		
+	elseif curMapName == "mp_coop_laser_crusher" then  --not a competition but if it were...
 		local x = math.random(1,100)
-		if x > 50 then
+		if x>50 then
 			GladosPlayVcd(1018)
 		else
 			GladosPlayVcd(1019)
 		end
-	elseif curMapName == "mp_coop_teambts" then
-		GladosPlayVcd(1021)		
-	------/Confidence Building Course	
+		
+	elseif curMapName == "mp_coop_teambts" then  --outside the box.
+		GladosPlayVcd(1021)
+		
+		
+------/Confidence Building Course						
 	elseif curMapName == "mp_coop_fling_3" then
 		GladosPlayVcd(1029)
+		
 	elseif curMapName == "mp_coop_infinifling_train" then
-		GladosPlayVcd(1031)					
+		GladosPlayVcd(1031)
+		
 	elseif curMapName == "mp_coop_come_along" then
 		GladosPlayVcd(1056)
+				
 	elseif curMapName == "mp_coop_fling_1" then
 		GladosPlayVcd(1032)
+		
 	elseif curMapName == "mp_coop_catapult_1" then
 		GladosPlayVcd(1057)
+		
 	elseif curMapName == "mp_coop_multifling_1" then
 		GladosPlayVcd(1058)
+		
 	elseif curMapName == "mp_coop_fling_crushers" then
 		GladosPlayVcd(1059)
+		
 	elseif curMapName == "mp_coop_fan" then
 		GladosPlayVcd(1054)
+		
 
 --------/Obstacle  Building Course
-	elseif curMapName == "mp_coop_wall_intro" then
+	elseif curMapName == "mp_coop_wall_intro" then 
 		GladosPlayVcd(1111)
+		
 	elseif curMapName == "mp_coop_wall_2" then
-		GladosPlayVcd(1118)	
+		GladosPlayVcd(1118)
+		
 	elseif curMapName == "mp_coop_catapult_wall_intro" then 
 		GladosPlayVcd(1117)
 		
 	elseif curMapName == "mp_coop_wall_block" then 
 		GladosPlayVcd(1119)
-			
+		
 	elseif curMapName == "mp_coop_catapult_2" then 
 		GladosPlayVcd(1121)
-			
+		
 	elseif curMapName == "mp_coop_turret_walls" then --check this is in ?
 		GladosPlayVcd(1122)
-						
+					
 	elseif curMapName == "mp_coop_turret_ball" then 
 		GladosPlayVcd(1083)
-						
+					
 	elseif curMapName == "mp_coop_wall_5" then 
 		GladosPlayVcd(1060)
-			
+		
 
 
 
@@ -3179,7 +3138,7 @@ function GladosCoopMapStart()
 	------/Subterfuge Building Course
 	elseif curMapName == "mp_coop_tbeam_redirect" then
 		GladosPlayVcd(1125)	
-					
+				
 	elseif curMapName == "mp_coop_tbeam_drill" then
 		if IsLocalSplitScreen() then
 			GladosPlayVcd(1306)
@@ -3202,7 +3161,7 @@ function GladosCoopMapStart()
 		
 	elseif curMapName == "mp_coop_tbeam_polarity" then
 		local x = math.random(1,100)
-	if x>50 then
+		if x>50 then
 			GladosPlayVcd(1069)	
 			bluetrust=1
 		else
@@ -3220,14 +3179,15 @@ function GladosCoopMapStart()
 				
 	elseif curMapName == "mp_coop_tbeam_polarity3" then
 		GladosPlayVcd(1261)	
-					
+
+				
 	elseif curMapName == "mp_coop_tbeam_maze" then
 		GladosPlayVcd(1127)	
 				
 	elseif curMapName == "mp_coop_tbeam_end" then
 		GladosPlayVcd(1129)	
---			GladosPrivateTalk(2,9)		
-			
+--		GladosPrivateTalk(2,9)		
+		
 
 --------/XXXXXX  Building Course
 	elseif curMapName == "mp_coop_paint_come_along" then
@@ -3254,6 +3214,7 @@ function GladosCoopMapStart()
 				
 	elseif curMapName == "mp_coop_paint_longjump_intro" then
 		GladosPlayVcd(1143)	
+		
 	end
 
 	StartSpeedRunTimer()
@@ -3265,9 +3226,9 @@ function GladosCoopOpenExitDoor(player)
 {
 	--endmap stuff
 	local mapname = game.GetMap()
-	printlDBG("****=================================Player "+player+" map NEW CODE"+mapname)
+	printDBG("****=================================Player "+player+" map NEW CODE"+mapname)
 	if (DBG)
-		printlDBG("****=================================Player "+player+" map "+mapname)
+		printDBG("****=================================Player "+player+" map "+mapname)
 	if (coopTriggeredElevator)
 	{
 		return
@@ -3294,7 +3255,7 @@ function GladosCoopOpenExitDoor(player)
 			GladosPlayVcd(18)
 			break
 		case "mp_coop_rat_maze": --Done
-			local x = math.random(1,100)
+			local x = RandomInt(1,100)
 			if (x>50){
 				GladosPlayVcd(1036)
 			}
@@ -3446,7 +3407,7 @@ function GladosCoopOpenExitDoor(player)
 			}
 			break		
 		case "mp_coop_tbeam_polarity2":
-			printlDBG("-------------------------------->"+polarity2whisper)
+			printDBG("-------------------------------->"+polarity2whisper)
 			if (polarity2whisper == 2){		
 				GladosPlayVcd(1309)	
 			}
@@ -3512,7 +3473,7 @@ function GladosCoopOpenExitDoor(player)
 function CheckAchievementsOnExitDoorOpen()
 {
 	-- If the player completed the specified map using only a few portals.
-	if ( game.GetMap() == LIMITED_PORTALS_MAP and
+	if ( game.GetMap() == LIMITED_PORTALS_MAP &&
 	     CoopGetNumPortalsPlaced() <= LIMITED_PORTALS_COUNT )
 	{
 		RecordAchievementEvent( "ACH.LIMITED_PORTALS", GetBluePlayerIndex() )
@@ -3537,7 +3498,8 @@ function SetMapRunTime( flTime )
 
 	CoopSetMapRunTime( flTime )
 	 
-	if flTime < SPEED_RUN_THRESHOLD and GetCoopSectionIndex() == SPEED_RUN_SECTION then
+	if flTime < SPEED_RUN_THRESHOLD and
+	     GetCoopSectionIndex() == SPEED_RUN_SECTION then
 		NotifySpeedRunSuccess( flTime, game.GetMap() )
 	end
 end
@@ -3556,7 +3518,7 @@ function CoopRacePlaceBox()
 --Plays the final audio for each level
 function GladosCoopElevatorEntrance(arg)
 {
-	printlDBG("====================================Player "+arg+" OLD CODE")
+	printDBG("====================================Player "+arg+" OLD CODE")
 	local mapname = game.GetMap()
 	switch (mapname)
 	{
@@ -3577,7 +3539,7 @@ function GladosCoopElevatorEntrance(arg)
 --			GladosPlayVcd(18)
 --			break
 --		case "mp_coop_rat_maze": --Done
---			local x = math.random(1,100)
+--			local x = RandomInt(1,100)
 --			if (x>50){
 --				GladosPlayVcd(1036)
 --			}
@@ -3639,12 +3601,12 @@ function GladosCoopElevatorEntrance(arg)
 --			GladosPlayVcd(15)
 --			break
 --		case "mp_coop_catapult_2": 
-----			if (OrangeTalk>500 and BlueTalk==0)
+----			if (OrangeTalk>500 && BlueTalk==0)
 ----				GladosPlayVcd(15)
 ----			break
 ----			}
 ----			else{
-----				if (BlueTalk>500 and OrangeTalk==0)
+----				if (BlueTalk>500 && OrangeTalk==0)
 ----					GladosPlayVcd(15)
 ----					break
 ----				}
@@ -3746,20 +3708,20 @@ function CoopPingTool(player,surface)
 {
 	local curTime = CurTime()
 	local mapname = game.GetMap()
-	printlDBG(surface)
+	printDBG(surface)
 	if (player == coopBlue){		
-		if (BlueInPortalTraining == 1 and BlueHasGun == 0 and mapname == "mp_coop_start"){
+		if (BlueInPortalTraining == 1 && BlueHasGun == 0 && mapname == "mp_coop_start"){
 			local BluePingInterval = curTime-BlueLastPing
 			local BluePingInterval2 = curTime-BluePortalTrainingCounter
 			BlueLastPing = curTime
-			if (surface==1 and BluePortalTrainingCounter==0 and BluePingTraining1==0){
+			if (surface==1 && BluePortalTrainingCounter==0 && BluePingTraining1==0){
 				BluePortalTrainingCounter=CurTime()
 				BluePingInterval2=0
 				BluePingTraining1=1
 				GladosPlayVcd(1000)
 
 			}
-			if (surface==1 and BluePingInterval2>7 and BluePortalTrainingCounter~=0  and BluePingTraining2==0){
+			if (surface==1 && BluePingInterval2>7 && BluePortalTrainingCounter~=0  && BluePingTraining2==0){
 				BluePortalTrainingCounter=0
 				BluePingTraining2=1
 				GladosPlayVcd(1001)
@@ -3768,18 +3730,18 @@ function CoopPingTool(player,surface)
 	}
 
 	if (player == coopOrange){		
-		if (OrangeInPortalTraining == 1 and OrangeHasGun == 0 and mapname == "mp_coop_start"){
+		if (OrangeInPortalTraining == 1 && OrangeHasGun == 0 && mapname == "mp_coop_start"){
 			local OrangePingInterval = curTime-OrangeLastPing
 			local OrangePingInterval2 = curTime-OrangePortalTrainingCounter
 			OrangeLastPing = curTime
-			if (surface==1 and OrangePortalTrainingCounter==0 and OrangePingTraining1==0){
+			if (surface==1 && OrangePortalTrainingCounter==0 && OrangePingTraining1==0){
 				OrangePortalTrainingCounter=CurTime()
 				OrangePingInterval2=0
 				OrangePingTraining1=1
 				GladosPlayVcd(1014)
 
 			}
-			if (surface==1 and OrangePingInterval2>7 and OrangePortalTrainingCounter~=0  and OrangePingTraining2==0){
+			if (surface==1 && OrangePingInterval2>7 && OrangePortalTrainingCounter~=0  && OrangePingTraining2==0){
 				OrangePortalTrainingCounter=0
 				OrangePingTraining2=1
 				GladosPlayVcd(1015)
@@ -3805,50 +3767,50 @@ function CoopPolarityWhisper(player){
 
 function CoopReturnHubTrack01(){
 	local tVcd
-	tVcd=math.random(1263,1266)
-	printlDBG("THIS IS RANDOM:"+ tVcd)
+	tVcd=RandomInt(1263,1266)
+	printDBG("THIS IS RANDOM:"+ tVcd)
 	GladosPlayVcd(tVcd)
 }
 
 function CoopReturnHubTrack02(){
 	local tVcd
-	tVcd=math.random(1267,1270)
-	printlDBG("THIS IS RANDOM:"+ tVcd)
+	tVcd=RandomInt(1267,1270)
+	printDBG("THIS IS RANDOM:"+ tVcd)
 	GladosPlayVcd(tVcd)
 
 }
 
 function CoopReturnHubTrack03(){
 	local tVcd
-	tVcd=math.random(1271,1273)
-	printlDBG("THIS IS RANDOM:"+ tVcd)
+	tVcd=RandomInt(1271,1273)
+	printDBG("THIS IS RANDOM:"+ tVcd)
 	GladosPlayVcd(tVcd)
 }
 
 function CoopReturnHubTrack04(){
 	local tVcd
-	tVcd=math.random(1274,1276)
-	printlDBG("THIS IS RANDOM:"+ tVcd)
+	tVcd=RandomInt(1274,1276)
+	printDBG("THIS IS RANDOM:"+ tVcd)
 	GladosPlayVcd(tVcd)
 }
 
 function CoopReturnHubTrack05(){
 	local tVcd
-	tVcd=math.random(1277,1279)
-	printlDBG("THIS IS RANDOM:"+ tVcd)
+	tVcd=RandomInt(1277,1279)
+	printDBG("THIS IS RANDOM:"+ tVcd)
 	GladosPlayVcd(tVcd)
 }
 
 function CoopReturnHubAllFinished(){
 	local tVcd
-	tVcd=math.random(1280,1286)
-	printlDBG("THIS IS RANDOM:"+ tVcd)
+	tVcd=RandomInt(1280,1286)
+	printDBG("THIS IS RANDOM:"+ tVcd)
 	GladosPlayVcd(tVcd)
 
 }
 
 function PlayerTauntCamera (player,animation){
-	printlDBG("===============>CAMERA GESTURE!"+player+" x "+animation)
+	printDBG("===============>CAMERA GESTURE!"+player+" x "+animation)
  	--added to block playing of responses while at vault door.
  	if (curMapName == "mp_coop_paint_longjump_intro"){
  		return
@@ -3864,7 +3826,7 @@ function PlayerTauntCamera (player,animation){
 	local tauntflag2 = GetGladosSpokenFlags( 2 )
 	local tauntflag3 = GetGladosSpokenFlags( 3 ) --4 used for deaths
 	
-	if (((tauntflag1 & (1 << 18)) == 0) and (curMapName == "mp_coop_race_2" or curMapName == "mp_coop_laser_2" or curMapName == "mp_coop_fling_3")){
+	if (((tauntflag1 & (1 << 18)) == 0) && (curMapName == "mp_coop_race_2" || curMapName == "mp_coop_laser_2" || curMapName == "mp_coop_fling_3")){
 		local TellStory = 0
 		local Player2
 		while ( Player2 = Entities.FindByName ( Player2, "blue" )  )
@@ -4025,7 +3987,7 @@ function PlayerTauntCamera (player,animation){
 
 	}
 
-	if ( animation == "TeamEggTease" or animation == "TeamBallTease" ){
+	if ( animation == "TeamEggTease" || animation == "TeamBallTease" ){
 		if ((tauntflag0 & (1 << 9)) == 0){
 			tauntflag0 = tauntflag0 + (1 << 9)
 			AddGladosSpokenFlags( 0, tauntflag0 )
@@ -4221,8 +4183,8 @@ function CoopBotAnimation(player,animation)
 {
 
 	testcnt=testcnt+1
-	printlDBG("===============>TEST TEST :"+testcnt)
-	printlDBG("===============>GESTURE!"+player+" x "+animation)
+	printDBG("===============>TEST TEST :"+testcnt)
+	printDBG("===============>GESTURE!"+player+" x "+animation)
 
 	if (GladosInsideTauntCam == 1 ){
 		if (player==1){
@@ -4234,14 +4196,14 @@ function CoopBotAnimation(player,animation)
 			BlueTauntFinaleInterval = CurTime()
 
 		}
-		if (BlueTauntCam==1 and OrangeTauntCam==1){
+		if (BlueTauntCam==1 && OrangeTauntCam==1){
 
 			GladosInsideTauntCam = 0 
-			printlDBG("===============>CAM TEST :"+GladosInsideTauntCam)
-			printlDBG("===============>CAM TEST :"+GladosInsideTauntCam)
-			printlDBG("===============>CAM TEST :"+GladosInsideTauntCam)
-			printlDBG("===============>CAM TEST :"+GladosInsideTauntCam)
-			printlDBG("===============>CAM TEST :"+GladosInsideTauntCam)
+			printDBG("===============>CAM TEST :"+GladosInsideTauntCam)
+			printDBG("===============>CAM TEST :"+GladosInsideTauntCam)
+			printDBG("===============>CAM TEST :"+GladosInsideTauntCam)
+			printDBG("===============>CAM TEST :"+GladosInsideTauntCam)
+			printDBG("===============>CAM TEST :"+GladosInsideTauntCam)
 			GladosPlayVcd(1161)
 
 		}
@@ -4321,17 +4283,24 @@ function CoopCubeFizzle(){
 		summer_sale_cube_died = true;
 	}
 }
-]]
+
 -- Announcer Stuf
 function CoopHubAllFinished()
-	local x = math.random(1,100)
-	if x>66 then
+{
+	local x = RandomInt(1,100)
+	if (x>66)
+	{
 		GladosPlayVcd(1108)	
+	}
 	else
-		if x>33 then
+	{
+		if (x>33)
+		{
 			GladosPlayVcd(1109)	
-		else
+		}
+		else{
 			GladosPlayVcd(1110)	
-		end
-	end
-end
+		}
+	}
+}
+]]

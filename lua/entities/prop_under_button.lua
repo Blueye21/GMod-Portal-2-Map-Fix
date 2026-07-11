@@ -8,11 +8,11 @@ ENT.Spawnable = true
 
 ENT.AutomaticFrameAdvance = true
 
-ENT.Delay = 1
+ENT.delay = 1
 ENT.istimer = false
-
-ENT.Timing = false
-ENT.ResetTime = 0
+ENT.preventfastreset = false
+ENT.skin = 0
+ENT.locked = false
 
 function ENT:Initialize()
     if CLIENT then return end
@@ -22,22 +22,44 @@ function ENT:Initialize()
     self:SetUseType(SIMPLE_USE)
 end
 
+function ENT:AcceptInput(inputName, activator, caller, param)
+    string.lower(inputName)
+    if inputName == "press" then
+        ENT:Use(activator)
+    end
+    if inputName == "lock" then
+        self.locked = true
+    end
+    if inputName == "unlock" then
+        self.locked = false 
+    end
+    if inputname == "cancelpress" then
+        self:ResetSequence( "Release" )
+        self.Timing = false
+    end
+end
+
 function ENT:KeyValue(k, v)
-    if (string.lower(k) == "skin") then
-        self:SetSkin(tonumber(v))
-    end
-    if k == "OnPressed" or k == "OnButtonReset" then
-        self:StoreOutput(k, v)
-    end
-    if k == "Delay" then
+    string.lower(k)
+    if k == "delay" then
         self.Delay = tonumber(v)
     end
     if k == "istimer" then
         self.istimer = v
     end
+    if k == "preventfastreset" then
+        self.preventfastreset = v
+    end
+    if k == "skin" then
+        self:SetSkin(tonumber(v))
+    end
+    if k == "OnPressed" or k == "OnPressedBlue" or k == "OnPressedOrange" or k == "OnButtonReset" then
+        self:StoreOutput(k, v)
+    end
 end
 
 function ENT:Use(activator)
+    if self.locked then return end
     if self.Timing then return end
     self:ResetSequence( "Press" )
     self:TriggerOutput("OnPressed",activator)

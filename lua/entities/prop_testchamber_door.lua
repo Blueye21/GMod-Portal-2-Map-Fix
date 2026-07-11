@@ -1,65 +1,79 @@
 AddCSLuaFile()
+ENT.Type = "anim"
+ENT.Base = "base_anim"
 
-ENT.Type      = "anim"
-ENT.Base      = "base_anim"
-ENT.PrintName = "Test-chamber Door"
-ENT.Category  = "Portal 2"
+ENT.PrintName = "Testchamber Door"
+ENT.Category = "Portal 2"
 ENT.Spawnable = true
 
-ENT.AutomaticFrameAdvance = true          -- Keep animations running
-
-------------------------------------------------------------------------------------------------------------------------
--- SERVER-side only from here on
-------------------------------------------------------------------------------------------------------------------------
-if CLIENT then return end
-
-local OPEN_SOUND  = Sound("plats/door_round_blue_unlock_01.wav")
-local CLOSE_SOUND = Sound("plats/door_round_blue_lock_01.wav")
+-- Hammer Keyvalues
+ENT.AreaPortalWindow = ""
+ENT.UseAreaPortalFade = false 
+ENT.AreaPortalFadeStart = 0.0
+ENT.AreaPortalFadeEnd = 0.0
+-- Logic Variables
+ENT.Locked = false
 
 function ENT:Initialize()
+    if CLIENT then return end
     self:SetModel("models/props/portal_door_combined.mdl")
-    self:ResetSequence(self:LookupSequence("idleclose"))
+    self:SetSequence("idleclose")
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- Hammer I/O
-------------------------------------------------------------------------------------------------------------------------
-function ENT:KeyValue(key, value)
-    if key == "OnOpen" or key == "OnClose" then
-        self:StoreOutput(key, value)
+function ENT:KeyValue(k,v)
+    if k == "AreaPortalWindow" then self.AreaPortalWindow = v end
+    if k == "UseAreaPortalFade" then self.UseAreaPortalFade = v == "1" end
+    if k == "AreaPortalFadeStart" then self.AreaPortalFadeStart = tonumber(v) end
+    if k == "AreaPortalFadeEnd" then self.AreaPortalFadeEnd = tonumber(v) end
+    if k == "OnOpen" or k == "OnClose" or k == "OnFullyOpen" or k == "OnFullyClosed" then
+        self:StoreOutput(k, v)
     end
 end
 
-function ENT:AcceptInput(name, activator, caller, data)
-    name = name:lower()
-
-    if name == "open" then
+function ENT:AcceptInput(inp,act,call,data)
+    if inp == "Open" then
         self:Open()
-        return true
-    elseif name == "close" then
+    end
+    if inp == "Close" then
         self:Close()
-        return true
+    end
+    if inp == "LockOpen" then
+        self:Open()
+        self.Locked = true 
+    end
+    if inp == "Lock" then
+        self.Locked = true 
+    end
+    if inp == "Unlock" then
+        self.Locked = false
     end
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- Public API
-------------------------------------------------------------------------------------------------------------------------
 function ENT:Open()
-    self:ResetSequence(self:LookupSequence("Open"))
-    self:EmitSound(OPEN_SOUND)
+    self:ResetSequenceInfo()
+    self:ResetSequence("Open")
+    self:EmitSound("plats/door_round_blue_unlock_01.wav")
     self:TriggerOutput("OnOpen")
+    timer.Simple(self:SequenceDuration(), function()
+        if IsValid(self) then
+            self:TriggerOutput("OnFullyOpen")
+        end
+    end)
 end
 
 function ENT:Close()
-    self:ResetSequence(self:LookupSequence("Close"))
-    self:EmitSound(CLOSE_SOUND)
+    self:ResetSequenceInfo()
+    self:ResetSequence("Close")
+    self:EmitSound("plats/door_round_blue_lock_01.wav")
     self:TriggerOutput("OnClose")
+    timer.Simple(self:SequenceDuration(), function()
+        if IsValid(self) then
+            self:TriggerOutput("OnFullyClosed")
+        end
+    end)
 end
 
-------------------------------------------------------------------------------------------------------------------------
--- Animation tick
-------------------------------------------------------------------------------------------------------------------------
+ENT.AutomaticFrameAdvance = true
 function ENT:Think()
     self:NextThink(CurTime())
     return true

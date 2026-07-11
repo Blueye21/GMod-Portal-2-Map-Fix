@@ -1,88 +1,94 @@
 AddCSLuaFile()
 
-ENT.Type      = "anim"
-ENT.Base      = "base_anim"
+ENT.Type            = "anim"
+ENT.Base            = "base_anim"
+ENT.PrintName       = "Hard Light Bridge Projected"
+ENT.Category        = "Portal 2"
+ENT.Spawnable       = true
+ENT.RenderGroup     = RENDERGROUP_BOTH          -- always draw, even through portal rooms
 
-ENT.PrintName = "Hard Light Bridge Projected"
-ENT.Category  = "Portal 2"
-ENT.Spawnable = true
+--------------------------------------------------------------------
+--  Client / server shared
+--------------------------------------------------------------------
+ENT.Length          = 0
+ENT.Enabled         = true
 
-ENT.RenderGroup = RENDERGROUP_TRANSLUCENT
+--------------------------------------------------------------------
+--  Precache everything once
+--------------------------------------------------------------------
+local MAT_BRIDGE    = Material("color")         -- cheap emissive
+local BRIDGE_WIDTH  = 32
+local BRIDGE_HEIGHT = 2
+local MAX_TRACE     = 4096
 
--- constants
-local BRIDGE_HALF_WIDTH  = 32
-local BRIDGE_HALF_THICK  = 2
-local BRIDGE_MAX_LENGTH  = 4096
-
-local BOUNDS_MIN = Vector(0, -BRIDGE_HALF_WIDTH, -BRIDGE_HALF_THICK)
-local BOUNDS_MAX = Vector(0,  BRIDGE_HALF_WIDTH,  BRIDGE_HALF_THICK)
-local BRIDGE_COLOR = Color(0, 255, 255, 255)
-
--- reusable trace table (avoids allocations each Think)
-local traceData = {}
-
+--------------------------------------------------------------------
+--  Initialize
+--------------------------------------------------------------------
 function ENT:Initialize()
+    -- Physics only on server
     if SERVER then
         self:SetSolid(SOLID_BBOX)
         self:SetMoveType(MOVETYPE_NONE)
-        self:SetSaveValue("gmod_allowphysgun", "0")
-
-        -- start with zero-length bridge
-        self.Length = 0
-        self:SetCollisionBounds(BOUNDS_MIN, BOUNDS_MAX)
-
-        self:NextThink(CurTime())
-    else -- CLIENT
-        self.Length = 0
-        self:SetRenderBounds(BOUNDS_MIN, BOUNDS_MAX)
+        hook.Add("PhysgunPickup", "NoPickup_ProjectedWall", function(ply, ent)
+            if ent:GetClass() == "projected_wall_entity" then
+                return false
+            end
+        end)
         self:DrawShadow(false)
     end
+
+    -- Start thinking next tick
+    self:NextThink(CurTime())
+    return true
 end
 
-if CLIENT then
+--------------------------------------------------------------------
+--  Server-side think: extend bridge until we hit something
+--------------------------------------------------------------------
+function ENT:Think()
+    local dir   = self:GetForward()
+    local trace = util.TraceLine{
+        start  = self:GetPos(),
+        endpos = self:GetPos() + dir * MAX_TRACE,
+        filter = self
+    }
 
-    function ENT:Draw()
-        local length = self.Length or 0
+    self.Length = MAX_TRACE * trace.Fraction
 
-        -- update render bounds for culling
+    -- Resize physics and visual bounds in one call
+    self:SetCollisionBounds(
+        Vector(0, -BRIDGE_WIDTH, -BRIDGE_HEIGHT),
+        Vector(self.Length, BRIDGE_WIDTH, BRIDGE_HEIGHT)
+    )
+
+    self:NextThink(CurTime())
+    return true
+end
+
+--------------------------------------------------------------------
+--  Client-side draw
+--------------------------------------------------------------------
+function ENT:Draw()
+    local len = self.Length
+    if len <= 0 then return end
+
+    -- Only update render bounds when length actually changes
+    if self._lastLength ~= len then
         self:SetRenderBounds(
-            BOUNDS_MIN,
-            Vector(length, BRIDGE_HALF_WIDTH, BRIDGE_HALF_THICK)
+            Vector(0, -BRIDGE_WIDTH, -BRIDGE_HEIGHT),
+            Vector(len, BRIDGE_WIDTH, BRIDGE_HEIGHT)
         )
-
-        render.SetColorMaterial() -- cheaper than Material("Color") every frame
-        render.DrawBox(
-            self:GetPos(),
-            self:GetAngles(),
-            BOUNDS_MIN,
-            Vector(length, BRIDGE_HALF_WIDTH, BRIDGE_HALF_THICK),
-            BRIDGE_COLOR
-        )
+        self._lastLength = len
     end
 
-else -- SERVER
+    local pos = self:GetPos()
+    local ang = self:GetAngles()
 
-    function ENT:Think()
-        local pos = self:GetPos()
-        local dir = self:GetAngles():Forward()
-
-        traceData.start  = pos
-        traceData.endpos = pos + dir * BRIDGE_MAX_LENGTH
-        traceData.filter = self -- avoid hitting ourselves
-
-        local tr = util.TraceLine(traceData)
-        local length = BRIDGE_MAX_LENGTH * tr.Fraction
-
-        self.Length = length
-
-        -- update collision box to match new length
-        self:SetCollisionBounds(
-            BOUNDS_MIN,
-            Vector(length, BRIDGE_HALF_WIDTH, BRIDGE_HALF_THICK)
-        )
-
-        self:NextThink(CurTime())
-        return true
-    end
-
+    render.SetMaterial(MAT_BRIDGE)
+    render.DrawBox(
+        pos, ang,
+        Vector(0, -BRIDGE_WIDTH, -BRIDGE_HEIGHT),
+        Vector(len, BRIDGE_WIDTH, BRIDGE_HEIGHT),
+        color_white
+    )
 end
